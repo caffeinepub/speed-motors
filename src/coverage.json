@@ -1,0 +1,77 @@
+{
+  "kind": "coverage_report",
+  "version": "1.0",
+  "generatedAt": "2026-02-14T14:32:02.196Z",
+  "sources": {
+    "buildRequest": true,
+    "implementationPlan": true
+  },
+  "requirements": {
+    "total": 1,
+    "implemented": 1,
+    "items": [
+      {
+        "id": "REQ-13",
+        "summary": "Make Spanish the default language for the application UI by replacing hard-coded English strings with Spanish across the navigation, header/search, pages, dialogs, empty states, alerts, and toast messages.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/components/layout/AppLayout.tsx",
+          "frontend/src/components/search/GlobalSearch.tsx",
+          "frontend/src/pages/InventoryPage.tsx",
+          "frontend/src/components/inventory/InventoryItemForm.tsx",
+          "frontend/src/pages/RatesPage.tsx",
+          "frontend/src/pages/CustomersPage.tsx",
+          "frontend/src/pages/CustomerDetailPage.tsx",
+          "frontend/src/pages/DashboardPage.tsx",
+          "frontend/src/pages/SalesPage.tsx",
+          "frontend/src/pages/CashboxPage.tsx",
+          "frontend/src/pages/SuppliersPage.tsx",
+          "frontend/src/pages/SupplierDetailPage.tsx",
+          "frontend/src/pages/ClosuresPage.tsx",
+          "frontend/index.html"
+        ],
+        "matchedFiles": [
+          "frontend/src/components/layout/AppLayout.tsx",
+          "frontend/src/components/search/GlobalSearch.tsx",
+          "frontend/src/pages/InventoryPage.tsx",
+          "frontend/src/components/inventory/InventoryItemForm.tsx",
+          "frontend/src/pages/RatesPage.tsx",
+          "frontend/src/pages/CustomersPage.tsx",
+          "frontend/src/pages/CustomerDetailPage.tsx",
+          "frontend/src/pages/DashboardPage.tsx",
+          "frontend/src/pages/SalesPage.tsx",
+          "frontend/src/pages/CashboxPage.tsx",
+          "frontend/src/pages/SuppliersPage.tsx",
+          "frontend/src/pages/SupplierDetailPage.tsx",
+          "frontend/src/pages/ClosuresPage.tsx",
+          "frontend/index.html"
+        ]
+      }
+    ]
+  },
+  "changedFiles": [
+    "build-request.json",
+    "build-template/README.md",
+    "feature_evidence.json",
+    "frontend-file-summaries.txt",
+    "frontend-implementation-plan.json",
+    "frontend/index.html",
+    "frontend/src/components/inventory/InventoryItemForm.tsx",
+    "frontend/src/components/layout/AppLayout.tsx",
+    "frontend/src/components/search/GlobalSearch.tsx",
+    "frontend/src/pages/CashboxPage.tsx",
+    "frontend/src/pages/ClosuresPage.tsx",
+    "frontend/src/pages/CustomerDetailPage.tsx",
+    "frontend/src/pages/CustomersPage.tsx",
+    "frontend/src/pages/DashboardPage.tsx",
+    "frontend/src/pages/InventoryPage.tsx",
+    "frontend/src/pages/RatesPage.tsx",
+    "frontend/src/pages/SalesPage.tsx",
+    "frontend/src/pages/SupplierDetailPage.tsx",
+    "frontend/src/pages/SuppliersPage.tsx",
+    "project_state.json",
+    "scratch/component-selection.json",
+    "spec.md",
+    "spec_vs_diff_report.json"
+  ]
+}

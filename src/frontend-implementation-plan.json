@@ -1,0 +1,94 @@
+{
+  "kind": "implementation_plan",
+  "version": "1.0",
+  "title": "Localizar la UI del ERP a español (es) por defecto",
+  "requirements": [
+    {
+      "id": "REQ-13",
+      "summary": "Reemplazar todas las cadenas visibles en inglés por español en navegación, encabezado/búsqueda global, páginas, diálogos, estados vacíos, alertas y toasts, manteniendo la funcionalidad existente.",
+      "acceptanceCriteria": [
+        "All visible navigation labels in the sidebar are Spanish (e.g., Dashboard, Inventory, Rates, Sales, Customers, Cashbox, Suppliers, Closures).",
+        "Header search button text and the Global Search modal title, placeholder, loading/empty messages, and per-result labels are Spanish.",
+        "Inventory page headings, descriptions, buttons (e.g., Add Product), category filter labels (e.g., All Categories), low-stock alert texts, and empty states are Spanish.",
+        "Rates page headings, helper texts, form labels, buttons, and toasts (success/error) are Spanish.",
+        "Customers list page headings, form labels/placeholders, buttons, empty states, and toasts (success/error) are Spanish.",
+        "Customer detail page texts (including error state and the “backend integration required” block) are Spanish.",
+        "Placeholder pages (Sales, Cashbox, Suppliers, Closures, Dashboard) have their headings and placeholder/alert copy translated to Spanish.",
+        "No user-facing English strings remain in the UI in the modules currently present in the frontend.",
+        "All existing functionality (routing, forms, queries, mutations, toasts) continues to work after localization changes."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/components/layout/AppLayout.tsx",
+          "operation": "modify",
+          "description": "Traducir al español las etiquetas del sidebar (Dashboard, Inventory, Rates, Sales, Customers, Cashbox, Suppliers, Closures), el texto del botón de búsqueda del header (incluyendo placeholder), y cualquier texto visible del footer que esté en inglés, manteniendo rutas y navegación intactas."
+        },
+        {
+          "path": "frontend/src/components/search/GlobalSearch.tsx",
+          "operation": "modify",
+          "description": "Traducir al español el título del modal, placeholder del input, estados de carga/vacío, y etiquetas por resultado (por ejemplo 'Stock' y 'Retail'), preservando la lógica de debounce, query y navegación."
+        },
+        {
+          "path": "frontend/src/pages/InventoryPage.tsx",
+          "operation": "modify",
+          "description": "Traducir al español títulos, descripciones, botones (p. ej. 'Agregar producto'), filtros (p. ej. 'Todas las categorías'), alerta de bajo stock (incluyendo pluralización), encabezados de tabla, badge de bajo stock y estados vacíos; mantener filtrado/cálculos/renderizado sin cambios funcionales."
+        },
+        {
+          "path": "frontend/src/components/inventory/InventoryItemForm.tsx",
+          "operation": "modify",
+          "description": "Traducir al español el título del diálogo, labels, placeholders, botones (Cancelar/Agregar), estado 'Agregando…', y toasts de éxito/error; mantener validación y envío al backend sin cambios."
+        },
+        {
+          "path": "frontend/src/pages/RatesPage.tsx",
+          "operation": "modify",
+          "description": "Traducir al español headings, textos de ayuda, títulos de tarjetas, formulario (labels/placeholders), botón (Agregar tasa / Agregando…), badges (p. ej. 'Última'), estados vacíos y toasts (éxito/error). Ajustar el formateo de fecha visible para usar un locale en español (p. ej. es-ES) sin cambiar la fuente de datos."
+        },
+        {
+          "path": "frontend/src/pages/CustomersPage.tsx",
+          "operation": "modify",
+          "description": "Traducir al español headings, descripciones, botón principal, tabla (headers y acciones como 'Ver detalles'), estado vacío, diálogo de alta de cliente (título, labels, placeholder), estados 'Agregando…' y toasts de éxito/error; mantener navegación a detalle y mutaciones."
+        },
+        {
+          "path": "frontend/src/pages/CustomerDetailPage.tsx",
+          "operation": "modify",
+          "description": "Traducir al español el estado de error (cliente no encontrado), botón 'Atrás', tarjetas (deuda actual/ID del cliente), y el bloque de alerta 'Integración de backend requerida' (título y descripción), manteniendo la obtención por params y el renderizado."
+        },
+        {
+          "path": "frontend/src/pages/DashboardPage.tsx",
+          "operation": "modify",
+          "description": "Traducir al español el título/subtítulo, alerta de integración requerida y toda la copia placeholder de tarjetas (ventas totales, productos, clientes, ganancia neta) y secciones (más vendidos/más buscados), conservando la estructura del layout."
+        },
+        {
+          "path": "frontend/src/pages/SalesPage.tsx",
+          "operation": "modify",
+          "description": "Traducir al español el título/subtítulo, alerta de integración requerida, y la copia del módulo (incluyendo la lista de capacidades planned), manteniendo el contenido como placeholder."
+        },
+        {
+          "path": "frontend/src/pages/CashboxPage.tsx",
+          "operation": "modify",
+          "description": "Traducir al español el título/subtítulo, alerta de integración requerida, y la copia del módulo (incluyendo lista), manteniendo el contenido como placeholder."
+        },
+        {
+          "path": "frontend/src/pages/SuppliersPage.tsx",
+          "operation": "modify",
+          "description": "Traducir al español el título/subtítulo, alerta de integración requerida, y la copia del módulo de proveedores (incluyendo lista), manteniendo el contenido como placeholder."
+        },
+        {
+          "path": "frontend/src/pages/SupplierDetailPage.tsx",
+          "operation": "modify",
+          "description": "Traducir al español el título/subtítulo ('Detalles del proveedor'), botón 'Atrás', alerta de integración requerida y la copia placeholder de información; mantener el uso de params y navegación."
+        },
+        {
+          "path": "frontend/src/pages/ClosuresPage.tsx",
+          "operation": "modify",
+          "description": "Traducir al español el título/subtítulo, alerta de integración requerida y la copia del módulo de cierres (incluyendo lista de capacidades), manteniendo el contenido como placeholder."
+        },
+        {
+          "path": "frontend/index.html",
+          "operation": "modify",
+          "description": "Ajustar el texto visible del documento (por ejemplo, el <title> si está en inglés) para que la experiencia de UI sea consistente en español, sin cambiar el arranque de la app."
+        }
+      ]
+    }
+  ]
+}

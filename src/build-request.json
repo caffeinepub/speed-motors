@@ -1,0 +1,56 @@
+{
+  "kind": "build_request",
+  "title": "Localize the entire ERP UI to Spanish",
+  "priority": "normal",
+  "requirements": [
+    {
+      "id": "REQ-13",
+      "text": "Make Spanish the default language for the application UI by replacing hard-coded English strings with Spanish across the navigation, header/search, pages, dialogs, empty states, alerts, and toast messages.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-4"
+        ],
+        "quotes": [
+          "pero lo quiero en español"
+        ]
+      },
+      "acceptanceCriteria": [
+        "All visible navigation labels in the sidebar are Spanish (e.g., Dashboard, Inventory, Rates, Sales, Customers, Cashbox, Suppliers, Closures).",
+        "Header search button text and the Global Search modal title, placeholder, loading/empty messages, and per-result labels are Spanish.",
+        "Inventory page headings, descriptions, buttons (e.g., Add Product), category filter labels (e.g., All Categories), low-stock alert texts, and empty states are Spanish.",
+        "Rates page headings, helper texts, form labels, buttons, and toasts (success/error) are Spanish.",
+        "Customers list page headings, form labels/placeholders, buttons, empty states, and toasts (success/error) are Spanish.",
+        "Customer detail page texts (including error state and the “backend integration required” block) are Spanish.",
+        "Placeholder pages (Sales, Cashbox, Suppliers, Closures, Dashboard) have their headings and placeholder/alert copy translated to Spanish.",
+        "No user-facing English strings remain in the UI in the modules currently present in the frontend.",
+        "All existing functionality (routing, forms, queries, mutations, toasts) continues to work after localization changes."
+      ]
+    }
+  ],
+  "constraints": [
+    "Do not modify files under frontend/src/hooks/useInternetIdentity.ts, frontend/src/hooks/useInternetIdentity.tsx, frontend/src/hooks/useActor.ts, frontend/src/main.tsx, or anything in frontend/src/components/ui (immutable paths).",
+    "Keep the backend as a single Motoko actor in backend/main.mo; this change should not require backend schema changes or migrations."
+  ],
+  "nonGoals": [
+    "Adding multi-language switching UI (language picker) unless required to meet the Spanish-only request.",
+    "Changing business logic, data models, or backend APIs.",
+    "Rewriting styling/theme beyond what is necessary to accommodate longer Spanish strings."
+  ],
+  "imageRequirements": {
+    "required": [],
+    "edits": []
+  },
+  "userProfileUpdate": {
+    "goalsToAdd": [],
+    "goalsToRemove": [],
+    "preferencesToAdd": [
+      "App UI should be in Spanish."
+    ],
+    "preferencesToRemove": [],
+    "miscToAdd": [],
+    "miscToRemove": [],
+    "fieldsToSet": {},
+    "fieldsToDelete": []
+  }
+}
