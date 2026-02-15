@@ -1,41 +1,99 @@
 {
   "kind": "build_request",
-  "title": "Localize the entire ERP UI to Spanish",
+  "title": "Fix failing build and implement advanced analytics aggregations (top-selling, top-searched, net profit by period)",
   "priority": "normal",
   "requirements": [
     {
-      "id": "REQ-13",
-      "text": "Make Spanish the default language for the application UI by replacing hard-coded English strings with Spanish across the navigation, header/search, pages, dialogs, empty states, alerts, and toast messages.",
+      "id": "REQ-1",
+      "text": "Investigate and fix the current build/deploy failure so the project compiles and deploys successfully again.",
+      "target": "both",
+      "source": {
+        "messageIds": [
+          "msg-10",
+          "msg-11"
+        ],
+        "quotes": [
+          "❌ Failed to build your app",
+          "poruqe no vuelve hacerlo"
+        ]
+      },
+      "acceptanceCriteria": [
+        "A clean build completes without errors for both backend and frontend.",
+        "A deploy completes successfully and the app loads without runtime errors.",
+        "Any fixes are captured in code (no manual post-build steps required)."
+      ]
+    },
+    {
+      "id": "REQ-2",
+      "text": "Implement backend aggregation methods required for advanced analytics: (1) top-selling products, (2) most-searched products, and (3) net profit grouped by time period.",
+      "target": "backend",
+      "source": {
+        "messageIds": [
+          "msg-8",
+          "msg-4"
+        ],
+        "quotes": [
+          "ok quiero que las agreges. porque quiero el programa completamente funcional",
+          "Las funciones de análisis avanzado (productos más vendidos, productos más buscados, ganancia neta por período) estarán disponibles una vez que se implementen métodos adicionales de agregación en el backend."
+        ]
+      },
+      "acceptanceCriteria": [
+        "Backend exposes query methods to return top-selling products (ranked by quantity sold) with a configurable limit and an optional time range filter.",
+        "Backend tracks product search activity and exposes a query method to return most-searched products (ranked by search count) with a configurable limit and an optional time range filter.",
+        "Backend exposes a query method that returns net profit grouped by a requested period (e.g., day/week/month) for a requested time range; profit is computed from recorded sales data (revenue minus cost).",
+        "All analytics methods enforce the same access-control level as other user-facing read operations (i.e., require at least user permission).",
+        "Existing functionality (inventory CRUD, sales posting, search, cashbox, customers) continues to work unchanged."
+      ]
+    },
+    {
+      "id": "REQ-3",
+      "text": "Update the frontend to consume and display the new advanced analytics on the Dashboard (top-selling products, most-searched products, and net profit by period), with sensible loading/empty states.",
       "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-8",
+          "msg-4"
+        ],
+        "quotes": [
+          "ok quiero que las agreges. porque quiero el programa completamente funcional",
+          "Las funciones de análisis avanzado (productos más vendidos, productos más buscados, ganancia neta por período) estarán disponibles una vez que se implementen métodos adicionales de agregación en el backend."
+        ]
+      },
+      "acceptanceCriteria": [
+        "React Query hooks are added in frontend/src/hooks/useQueries.ts for each new backend analytics method.",
+        "Dashboard page (frontend/src/pages/DashboardPage.tsx) renders sections/cards for: top-selling products, most-searched products, and net profit by period.",
+        "Dashboard supports selecting a time range/period grouping (at minimum: a few preset ranges such as last 7 days / last 30 days / this month) and updates analytics accordingly.",
+        "All new user-visible UI strings use the existing i18n helper (t(...)) and do not introduce hard-coded English/Spanish strings in components."
+      ]
+    },
+    {
+      "id": "REQ-4",
+      "text": "Update backend search behavior to record search events needed for “most-searched products” analytics without breaking current search results.",
+      "target": "backend",
       "source": {
         "messageIds": [
           "msg-4"
         ],
         "quotes": [
-          "pero lo quiero en español"
+          "productos más buscados"
         ]
       },
       "acceptanceCriteria": [
-        "All visible navigation labels in the sidebar are Spanish (e.g., Dashboard, Inventory, Rates, Sales, Customers, Cashbox, Suppliers, Closures).",
-        "Header search button text and the Global Search modal title, placeholder, loading/empty messages, and per-result labels are Spanish.",
-        "Inventory page headings, descriptions, buttons (e.g., Add Product), category filter labels (e.g., All Categories), low-stock alert texts, and empty states are Spanish.",
-        "Rates page headings, helper texts, form labels, buttons, and toasts (success/error) are Spanish.",
-        "Customers list page headings, form labels/placeholders, buttons, empty states, and toasts (success/error) are Spanish.",
-        "Customer detail page texts (including error state and the “backend integration required” block) are Spanish.",
-        "Placeholder pages (Sales, Cashbox, Suppliers, Closures, Dashboard) have their headings and placeholder/alert copy translated to Spanish.",
-        "No user-facing English strings remain in the UI in the modules currently present in the frontend.",
-        "All existing functionality (routing, forms, queries, mutations, toasts) continues to work after localization changes."
+        "Product searches continue to return the same matching inventory items as before.",
+        "Each successful search increments stored counters needed to compute “most-searched products” (counts per product), without requiring any external services or databases.",
+        "Search tracking storage is bounded or otherwise managed to avoid unbounded growth (e.g., store per-product counters rather than logging every query verbatim)."
       ]
     }
   ],
   "constraints": [
-    "Do not modify files under frontend/src/hooks/useInternetIdentity.ts, frontend/src/hooks/useInternetIdentity.tsx, frontend/src/hooks/useActor.ts, frontend/src/main.tsx, or anything in frontend/src/components/ui (immutable paths).",
-    "Keep the backend as a single Motoko actor in backend/main.mo; this change should not require backend schema changes or migrations."
+    "Backend must remain a single Motoko actor in backend/main.mo (no additional backend services).",
+    "Do not edit files under frontend/src/components/ui or any frontend paths listed as immutable in SYSTEM_CONTEXT.",
+    "Use English for any user-facing text in this build request document (implementation can continue using the app’s existing Spanish i18n system)."
   ],
   "nonGoals": [
-    "Adding multi-language switching UI (language picker) unless required to meet the Spanish-only request.",
-    "Changing business logic, data models, or backend APIs.",
-    "Rewriting styling/theme beyond what is necessary to accommodate longer Spanish strings."
+    "Implementing a full accounting/ledger system or advanced BI features beyond the three requested analytics.",
+    "Adding external databases, third-party analytics services, or off-chain storage.",
+    "Real-time dashboards or push-based updates (polling via React Query is sufficient)."
   ],
   "imageRequirements": {
     "required": [],
@@ -44,9 +102,7 @@
   "userProfileUpdate": {
     "goalsToAdd": [],
     "goalsToRemove": [],
-    "preferencesToAdd": [
-      "App UI should be in Spanish."
-    ],
+    "preferencesToAdd": [],
     "preferencesToRemove": [],
     "miscToAdd": [],
     "miscToRemove": [],

@@ -1,16 +1,23 @@
 import { useParams, useNavigate } from '@tanstack/react-router';
 import { ArrowLeft, AlertCircle } from 'lucide-react';
-import { useCustomer } from '@/hooks/useQueries';
+import { useCustomer, useOverdueDelinquentSales } from '@/hooks/useQueries';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
 import LargeButton from '@/components/LargeButton';
+import OverdueCreditAlert from '@/components/customers/OverdueCreditAlert';
 import { formatUSD } from '@/lib/currency';
+import { t } from '@/lib/i18n';
 
 export default function CustomerDetailPage() {
   const { customerId } = useParams({ from: '/customers/$customerId' });
   const navigate = useNavigate();
   const { data: customer, isLoading } = useCustomer(customerId);
+  const { data: overdueSales = [] } = useOverdueDelinquentSales();
+
+  const customerOverdueSales = customer 
+    ? overdueSales.filter(sale => sale.customerName === customer.name)
+    : [];
 
   if (isLoading) {
     return (
@@ -26,8 +33,8 @@ export default function CustomerDetailPage() {
       <div className="space-y-6">
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Cliente No Encontrado</AlertTitle>
-          <AlertDescription>No se pudo encontrar el cliente solicitado.</AlertDescription>
+          <AlertTitle>{t('customer_detail.not_found')}</AlertTitle>
+          <AlertDescription>{t('customer_detail.not_found_description')}</AlertDescription>
         </Alert>
       </div>
     );
@@ -38,7 +45,7 @@ export default function CustomerDetailPage() {
       <div className="flex items-center gap-4">
         <LargeButton variant="outline" onClick={() => navigate({ to: '/customers' })}>
           <ArrowLeft className="mr-2 h-5 w-5" />
-          Atrás
+          {t('action.back')}
         </LargeButton>
         <div>
           <h1 className="text-3xl font-bold">{customer.name}</h1>
@@ -46,10 +53,14 @@ export default function CustomerDetailPage() {
         </div>
       </div>
 
+      {customerOverdueSales.length > 0 && (
+        <OverdueCreditAlert customerName={customer.name} />
+      )}
+
       <div className="grid gap-6 md:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle>Deuda Actual</CardTitle>
+            <CardTitle>{t('customer_detail.current_debt')}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className={`text-3xl font-bold ${customer.debtUsd > 0 ? 'text-destructive' : ''}`}>
@@ -60,7 +71,7 @@ export default function CustomerDetailPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>ID del Cliente</CardTitle>
+            <CardTitle>{t('customer_detail.customer_id')}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-xl font-mono">{customer.id}</div>
@@ -70,11 +81,9 @@ export default function CustomerDetailPage() {
 
       <Alert>
         <AlertCircle className="h-4 w-4" />
-        <AlertTitle>Integración de Backend Requerida</AlertTitle>
+        <AlertTitle>{t('customer_detail.backend_required')}</AlertTitle>
         <AlertDescription>
-          El historial de transacciones del cliente, registro de pagos de deuda y libro de ventas a crédito 
-          requieren métodos adicionales en el backend. Estas funcionalidades estarán disponibles una vez que 
-          se extienda el backend.
+          {t('customer_detail.backend_description')}
         </AlertDescription>
       </Alert>
     </div>

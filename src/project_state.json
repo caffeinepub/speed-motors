@@ -1,99 +1,28 @@
 {
   "schemaVersion": "1.0.0",
-  "projectStateVersion": 5,
-  "summary": "ERP para repuestos de motos para 'Speed Motors' con inventario, tasas de cambio en tiempo real, ventas/caja, proveedores, deudas por crédito, alertas y dashboard de analítica, y una UI simple en español con botones grandes y buscador global.",
+  "projectStateVersion": 3,
+  "summary": "Project aims to be fully functional, including advanced analytics (top-selling products, most-searched products, net profit by period) which require additional backend aggregation methods.",
   "architectural_notes": [
-    "Los precios base se mantienen en USD; el sistema calcula montos en Bs y COP multiplicando por tasas vigentes en tiempo real.",
-    "Ventas a crédito no deben afectar la caja diaria hasta que se registre el pago manual del cliente."
+    "Advanced analytics depend on new backend aggregation endpoints/queries (grouping/summing/counting over sales/search data by time period)."
   ],
-  "known_issues": [],
-  "isFixRequest": false,
+  "known_issues": [
+    "App build is failing during deployment/build process; needs investigation and fix."
+  ],
+  "isFixRequest": true,
   "existing_features": [
     {
-      "id": "feature-implement-exchange-rate-handling-so-that-the-system-can-display-prices-in-usd-and-in-derived-currencies-using-the-latest-exchangerate-values-ves-usd-bcv-and-cop-usd-cop-rate-with-ui-updates-when-rates-are-changed-or-refreshed",
-      "title": "Implement exchange-rate handling so that the system can display prices in USD and in derived currencies using the latest ExchangeRate values: VES = USD * BCV and COP = USD * COP rate, with UI updates when rates are changed or refreshed.",
+      "id": "feature-investigate-and-fix-the-current-build-deploy-failure-so-the-project-compiles-and-deploys-successfully-again",
+      "title": "Investigate and fix the current build/deploy failure so the project compiles and deploys successfully again.",
+      "reqIds": [
+        "REQ-1"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-update-the-frontend-to-consume-and-display-the-new-advanced-analytics-on-the-dashboard-top-selling-products-most-searched-products-and-net-profit-by-period-with-sensible-loading-empty-states",
+      "title": "Update the frontend to consume and display the new advanced analytics on the Dashboard (top-selling products, most-searched products, and net profit by period), with sensible loading/empty states.",
       "reqIds": [
         "REQ-3"
-      ],
-      "version": 1
-    },
-    {
-      "id": "feature-create-an-inventory-module-ui-with-list-view-create-edit-form-category-filtering-and-clear-stock-status-indicators-products-with-stockcurrent-stockmin-must-be-visually-highlighted-in-red-in-the-list-and-detail-views",
-      "title": "Create an Inventory module UI with: list view, create/edit form, category filtering, and clear stock status indicators; products with stockCurrent <= stockMin must be visually highlighted in red in the list and detail views.",
-      "reqIds": [
-        "REQ-4"
-      ],
-      "version": 1
-    },
-    {
-      "id": "feature-create-a-sales-cashbox-module-ui-that-supports-recording-a-sale-by-selecting-customer-selecting-one-or-more-products-with-quantities-choosing-a-price-tier-retail-wholesale-special-per-line-or-per-sale-and-selecting-payment-method-cash-transfer-credit",
-      "title": "Create a Sales & Cashbox module UI that supports recording a sale by selecting customer, selecting one or more products with quantities, choosing a price tier (retail/wholesale/special) per line or per sale, and selecting payment method (Cash, Transfer, Credit).",
-      "reqIds": [
-        "REQ-5"
-      ],
-      "version": 1
-    },
-    {
-      "id": "feature-implement-customer-debt-management-if-a-sale-is-recorded-with-payment-method-credit-add-the-sale-total-usd-to-the-selected-customer-s-debt-and-exclude-it-from-the-daily-cashbox-until-a-manual-payment-is-registered-provide-a-ui-to-register-debt-payments-cash-transfer-that-reduce-debt-and-create-a-cashbox-in-entry",
-      "title": "Implement customer debt management: if a sale is recorded with payment method Credit, add the sale total (USD) to the selected customer’s debt and exclude it from the daily cashbox until a manual payment is registered; provide a UI to register debt payments (cash/transfer) that reduce debt and create a cashbox In entry.",
-      "reqIds": [
-        "REQ-6"
-      ],
-      "version": 1
-    },
-    {
-      "id": "feature-create-a-cashbox-module-ui-for-viewing-and-managing-cash-movements-list-entries-with-filters-by-date-range-and-type-in-out-show-running-balance-and-allow-manual-creation-of-out-entries-for-expenses-and-supplier-payments-and-manual-in-entries-when-needed",
-      "title": "Create a Cashbox module UI for viewing and managing cash movements: list entries with filters by date range and type (In/Out), show running balance, and allow manual creation of Out entries for expenses and supplier payments, and manual In entries when needed.",
-      "reqIds": [
-        "REQ-7"
-      ],
-      "version": 1
-    },
-    {
-      "id": "feature-create-a-suppliers-module-ui-to-record-incoming-merchandise-stock-entries-with-supplier-selection-line-items-product-quantity-cost-usd-and-payment-status-paid-or-payable-if-status-is-payable-it-must-be-tracked-as-an-amount-owed-to-the-supplier-supplier-payable-balance-and-not-create-an-immediate-cashbox-out-entry-if-paid-it-must-create-a-cashbox-out-entry",
-      "title": "Create a Suppliers module UI to record incoming merchandise (stock entries) with supplier selection, line items (product, quantity, cost USD), and payment status (Paid or Payable). If status is Payable, it must be tracked as an amount owed to the supplier (supplier payable balance) and not create an immediate cashbox Out entry; if Paid, it must create a cashbox Out entry.",
-      "reqIds": [
-        "REQ-8"
-      ],
-      "version": 1
-    },
-    {
-      "id": "feature-add-a-global-fast-search-ui-prominent-always-accessible-that-searches-inventory-by-product-description-name-and-category-log-searches-to-backend-counters-to-enable-the-most-searched-products-analytics",
-      "title": "Add a global fast search UI (prominent, always accessible) that searches inventory by product description/name and category; log searches to backend counters to enable the 'most searched products' analytics.",
-      "reqIds": [
-        "REQ-9"
-      ],
-      "version": 1
-    },
-    {
-      "id": "feature-implement-a-dashboard-with-bar-and-pie-charts-showing-top-selling-products-for-day-week-month-net-profit-percentage-for-the-selected-period-based-on-sale-prices-minus-entry-costs-and-most-searched-products-by-frequency-include-period-selectors-and-consistent-currency-display-usd-with-ves-cop-equivalents",
-      "title": "Implement a Dashboard with bar and pie charts showing: top-selling products for day/week/month, net profit percentage for the selected period (based on sale prices minus entry costs), and most searched products by frequency; include period selectors and consistent currency display (USD with VES/COP equivalents).",
-      "reqIds": [
-        "REQ-10"
-      ],
-      "version": 1
-    },
-    {
-      "id": "feature-implement-closures-end-of-period-summaries-that-generate-and-display-daily-biweekly-quincenal-and-monthly-reports-including-total-sales-paid-total-credit-sales-total-cashbox-in-out-net-cash-movement-outstanding-customer-debt-total-and-outstanding-supplier-payables-total-with-the-ability-to-view-historical-closures-by-date-range",
-      "title": "Implement Closures (end-of-period summaries) that generate and display daily, biweekly (quincenal), and monthly reports including: total sales paid, total credit sales, total cashbox In/Out, net cash movement, outstanding customer debt total, and outstanding supplier payables total, with the ability to view historical closures by date range.",
-      "reqIds": [
-        "REQ-11"
-      ],
-      "version": 1
-    },
-    {
-      "id": "feature-apply-a-coherent-clean-professional-visual-theme-for-the-speed-motors-erp-ui-with-large-touch-friendly-buttons-high-contrast-typography-and-a-consistent-layout-sidebar-or-top-navigation-across-all-modules-avoid-blue-purple-as-primary-colors",
-      "title": "Apply a coherent, clean professional visual theme for the Speed Motors ERP UI with large, touch-friendly buttons, high-contrast typography, and a consistent layout (sidebar or top navigation) across all modules; avoid blue/purple as primary colors.",
-      "reqIds": [
-        "REQ-12"
-      ],
-      "version": 1
-    },
-    {
-      "id": "feature-make-spanish-the-default-language-for-the-application-ui-by-replacing-hard-coded-english-strings-with-spanish-across-the-navigation-header-search-pages-dialogs-empty-states-alerts-and-toast-messages",
-      "title": "Make Spanish the default language for the application UI by replacing hard-coded English strings with Spanish across the navigation, header/search, pages, dialogs, empty states, alerts, and toast messages.",
-      "reqIds": [
-        "REQ-13"
       ],
       "version": 1
     }
@@ -101,88 +30,28 @@
   "new_feature_requests": [
     {
       "id": "AR-1",
-      "summary": "Modelo de datos de Inventario (ID, foto, descripción, categoría, stock actual/mínimo, costos y precios USD por tipo)",
-      "reqIds": [],
-      "status": "pending"
-    },
-    {
-      "id": "AR-2",
-      "summary": "Tabla de Tasas (BCV Bs/$ y Peso COP/$) y conversión de precios USD a monedas locales en tiempo real",
+      "summary": "Implement backend aggregation methods to enable advanced analytics (top-selling products, most-searched products, net profit by period) in the dashboard.",
       "reqIds": [],
       "status": "pending"
     },
     {
       "id": "AR-3",
-      "summary": "Módulo de Ventas: registro de venta con cliente, producto y método de pago (Efectivo/Transferencia/Crédito)",
-      "reqIds": [],
-      "status": "pending"
-    },
-    {
-      "id": "AR-4",
-      "summary": "Gestión de deudas de clientes: ventas a crédito se suman a perfil del cliente y no impactan Caja hasta registrar pago",
-      "reqIds": [],
-      "status": "pending"
-    },
-    {
-      "id": "AR-5",
-      "summary": "Módulo de Caja: registro de entradas (ventas pagadas) y salidas (gastos/pagos a proveedores)",
-      "reqIds": [],
-      "status": "pending"
-    },
-    {
-      "id": "AR-6",
-      "summary": "Módulo de Proveedores: registro de entradas de mercancía con estado Pagado o Por Pagar",
-      "reqIds": [],
-      "status": "pending"
-    },
-    {
-      "id": "AR-7",
-      "summary": "Alertas de stock: resaltar en rojo productos con stock actual <= stock mínimo",
-      "reqIds": [],
-      "status": "pending"
-    },
-    {
-      "id": "AR-8",
-      "summary": "Dashboard de estadísticas: más vendido (día/semana/mes), % ganancia neta, productos más buscados (frecuencia de consulta)",
-      "reqIds": [],
-      "status": "pending"
-    },
-    {
-      "id": "AR-9",
-      "summary": "Cierres: resumen de saldos diarios, quincenales y mensuales",
-      "reqIds": [],
-      "status": "pending"
-    },
-    {
-      "id": "AR-10",
-      "summary": "Interfaz: diseño limpio con botones grandes y buscador global por nombre o categoría",
-      "reqIds": [],
-      "status": "pending"
-    },
-    {
-      "id": "AR-11",
-      "summary": "Implement backend data models and stable storage for an ERP system with these entities: InventoryItem (id, photo, description, category/family, stockCurrent, stockMin, costUsd, sellRetailUsd, sellWholesaleUsd, sellSpecialUsd), ExchangeRate (date, bcvVesPerUsd, copPerUsd), Customer (id, name, contact fields as needed, debtUsd), Supplier (id, name, contact fields as needed), Sale (id, dateTime, customerId, lineItems with productId/qty/unitPriceUsd/priceTier, paymentMethod: Cash|Transfer|Credit, totals), CashEntry (id, dateTime, type: In|Out, amountUsd, method, reference, relatedSaleId optional, relatedSupplierId optional, notes), SupplierStockEntry (id, dateTime, supplierId, lineItems with productId/qty/costUsd, status: Paid|Payable, totalUsd), and SearchLog counters for product lookups (by productId and/or query string).",
-      "reqIds": [
-        "REQ-1"
-      ],
-      "status": "pending"
-    },
-    {
-      "id": "AR-12",
-      "summary": "Expose backend actor methods (CRUD + domain operations) needed by the frontend for: inventory management, exchange-rate management (create/read latest rates, list history), customer management (create/read/update, view debt), supplier management, recording a sale (with stock decrement rules), recording cashbox entries, recording supplier stock entries (with stock increment rules), recording credit-debt payments, generating summaries for closures (daily/biweekly/monthly), and retrieving analytics aggregates (top-selling by period, net profit percentage, most searched products).",
+      "summary": "Implement backend aggregation methods required for advanced analytics: (1) top-selling products, (2) most-searched products, and (3) net profit grouped by time period.",
       "reqIds": [
         "REQ-2"
       ],
       "status": "pending"
     },
     {
-      "id": "AR-13",
-      "summary": "UI en español (localización/idioma de toda la aplicación: etiquetas, módulos, botones, reportes y mensajes)",
-      "reqIds": [],
+      "id": "AR-5",
+      "summary": "Update backend search behavior to record search events needed for “most-searched products” analytics without breaking current search results.",
+      "reqIds": [
+        "REQ-4"
+      ],
       "status": "pending"
     }
   ],
-  "projectName": "Speed Motors",
+  "projectName": "Fix failing build and implement advanced analytics aggregations (top-selling, top-searched, net profit by period)",
   "clarification_mode": "instant",
   "clarification_rounds": 0
 }

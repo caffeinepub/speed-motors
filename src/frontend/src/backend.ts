@@ -89,6 +89,57 @@ export class ExternalBlob {
         return this;
     }
 }
+export type Time = bigint;
+export interface TopSellingProduct {
+    productId: string;
+    salesCount: bigint;
+    productDetails: InventoryItem;
+}
+export interface TopSearchedProduct {
+    searchTerm: string;
+    searchCount: bigint;
+}
+export interface _CaffeineStorageRefillInformation {
+    proposed_top_up_amount?: bigint;
+}
+export interface NetProfitEntry {
+    period: string;
+    profitMargin: number;
+    netProfit: number;
+}
+export interface ExchangeRate {
+    copPerUsd: number;
+    bcvVesPerUsd: number;
+    date: Time;
+}
+export interface CashboxEntry {
+    id: string;
+    entryType: Variant__in_out;
+    description: string;
+    currency: string;
+    timestamp: Time;
+    amountUsd: number;
+}
+export interface _CaffeineStorageCreateCertificateResult {
+    method: string;
+    blob_hash: string;
+}
+export interface Sale {
+    id: string;
+    customerName: string;
+    dueDate?: Time;
+    totalAmountUsd: number;
+    saleTimestamp: Time;
+    itemsSold: Array<InventoryItem>;
+    isCreditSale: boolean;
+}
+export interface Customer {
+    id: string;
+    contactInfo: string;
+    name: string;
+    debtUsd: number;
+}
+export type Blob = Uint8Array;
 export interface InventoryItem {
     id: string;
     stockMin: bigint;
@@ -99,32 +150,42 @@ export interface InventoryItem {
     sellSpecialUsd: number;
     category: string;
     photo?: Blob;
+    profitMarginPercent: number;
     costUsd: number;
 }
-export type Time = bigint;
-export interface ExchangeRate {
-    copPerUsd: number;
-    bcvVesPerUsd: number;
-    date: Time;
+export interface RecordSearchEventPayload {
+    searchTerm: string;
+    timestamp: Time;
 }
-export interface _CaffeineStorageRefillInformation {
-    proposed_top_up_amount?: bigint;
+export interface UpdateInventoryItemPayload {
+    stockMin?: bigint;
+    sellRetailUsd?: number;
+    sellWholesaleUsd?: number;
+    description?: string;
+    stockCurrent?: bigint;
+    sellSpecialUsd?: number;
+    category?: string;
+    photo?: Blob;
+    profitMarginPercent?: number;
+    costUsd?: number;
 }
-export interface _CaffeineStorageCreateCertificateResult {
-    method: string;
-    blob_hash: string;
-}
-export interface Customer {
-    id: string;
-    contactInfo: string;
+export interface UserProfile {
     name: string;
-    debtUsd: number;
+    role: string;
 }
 export interface _CaffeineStorageRefillResult {
     success?: boolean;
     topped_up_amount?: bigint;
 }
-export type Blob = Uint8Array;
+export enum UserRole {
+    admin = "admin",
+    user = "user",
+    guest = "guest"
+}
+export enum Variant__in_out {
+    _in = "_in",
+    out = "out"
+}
 export interface backendInterface {
     _caffeineStorageBlobIsLive(hash: Uint8Array): Promise<boolean>;
     _caffeineStorageBlobsToDelete(): Promise<Array<Uint8Array>>;
@@ -132,20 +193,49 @@ export interface backendInterface {
     _caffeineStorageCreateCertificate(blobHash: string): Promise<_CaffeineStorageCreateCertificateResult>;
     _caffeineStorageRefillCashier(refillInformation: _CaffeineStorageRefillInformation | null): Promise<_CaffeineStorageRefillResult>;
     _caffeineStorageUpdateGatewayPrincipals(): Promise<void>;
+    _initializeAccessControlWithSecret(userSecret: string): Promise<void>;
+    addCashboxEntry(id: string, entryType: Variant__in_out, amountUsd: number, currency: string, description: string): Promise<void>;
     addExchangeRate(bcvVesPerUsd: number, copPerUsd: number): Promise<void>;
+    addProfitMarginToCost(costUsd: number, profitMarginPercent: number): Promise<number>;
+    adjustCustomerDebt(id: string, amount: number): Promise<void>;
+    aggregateNetProfitByInterval(_interval: string): Promise<Array<NetProfitEntry>>;
+    assignCallerUserRole(user: Principal, role: UserRole): Promise<void>;
     convertPriceToCop(usd: number): Promise<number>;
     convertPriceToVes(usd: number): Promise<number>;
     createCustomer(id: string, name: string, contactInfo: string): Promise<Customer>;
-    createInventoryItem(id: string, photo: Blob | null, description: string, category: string, stockCurrent: bigint, stockMin: bigint, costUsd: number, sellRetailUsd: number, sellWholesaleUsd: number, sellSpecialUsd: number): Promise<InventoryItem>;
+    createInventoryItem(id: string, photo: Blob | null, description: string, category: string, profitMarginPercent: number, stockCurrent: bigint, stockMin: bigint, costUsd: number, sellRetailUsd: number, sellWholesaleUsd: number, sellSpecialUsd: number): Promise<InventoryItem>;
+    filterInventoryByCategory(category: string): Promise<Array<InventoryItem>>;
+    findOverdueDelinquentSales(delinquentSales: Array<Sale>): Promise<Array<Sale>>;
+    getCallerUserProfile(): Promise<UserProfile | null>;
+    getCallerUserRole(): Promise<UserRole>;
+    getCashboxTotals(): Promise<{
+        cop: number;
+        usd: number;
+        ves: number;
+    }>;
+    getCurrentTimestamp(): Promise<bigint>;
     getCustomer(id: string): Promise<Customer>;
+    getCustomerDebts(): Promise<Array<[string, number]>>;
+    getDistinctCategories(): Promise<Array<string>>;
     getInventoryItem(id: string): Promise<InventoryItem>;
     getLatestExchangeRate(): Promise<ExchangeRate>;
+    getTopItemsSold(_count: bigint): Promise<Array<TopSellingProduct>>;
+    getTopSearchedProducts(_count: bigint): Promise<Array<TopSearchedProduct>>;
+    getUserProfile(user: Principal): Promise<UserProfile | null>;
+    hasDelinquentSales(delinquentSales: Array<Sale>): Promise<boolean>;
+    isCallerAdmin(): Promise<boolean>;
+    listCashboxEntries(): Promise<Array<CashboxEntry>>;
     listCustomers(): Promise<Array<Customer>>;
+    listDelinquentSales(): Promise<Array<Sale>>;
     listExchangeRates(): Promise<Array<ExchangeRate>>;
     listInventory(): Promise<Array<InventoryItem>>;
+    postSale(id: string, customerName: string, itemsSold: Array<InventoryItem>, totalAmountUsd: number, isCreditSale: boolean): Promise<void>;
+    recordSearchEvent(_payload: RecordSearchEventPayload): Promise<void>;
+    saveCallerUserProfile(profile: UserProfile): Promise<void>;
     searchProducts(searchQuery: string): Promise<Array<InventoryItem>>;
+    updateInventoryItem(id: string, payload: UpdateInventoryItemPayload): Promise<InventoryItem>;
 }
-import type { Blob as _Blob, InventoryItem as _InventoryItem, _CaffeineStorageRefillInformation as __CaffeineStorageRefillInformation, _CaffeineStorageRefillResult as __CaffeineStorageRefillResult } from "./declarations/backend.did.d.ts";
+import type { Blob as _Blob, CashboxEntry as _CashboxEntry, InventoryItem as _InventoryItem, Sale as _Sale, Time as _Time, TopSellingProduct as _TopSellingProduct, UpdateInventoryItemPayload as _UpdateInventoryItemPayload, UserProfile as _UserProfile, UserRole as _UserRole, _CaffeineStorageRefillInformation as __CaffeineStorageRefillInformation, _CaffeineStorageRefillResult as __CaffeineStorageRefillResult } from "./declarations/backend.did.d.ts";
 export class Backend implements backendInterface {
     constructor(private actor: ActorSubclass<_SERVICE>, private _uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, private _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, private processError?: (error: unknown) => never){}
     async _caffeineStorageBlobIsLive(arg0: Uint8Array): Promise<boolean> {
@@ -232,6 +322,34 @@ export class Backend implements backendInterface {
             return result;
         }
     }
+    async _initializeAccessControlWithSecret(arg0: string): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor._initializeAccessControlWithSecret(arg0);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor._initializeAccessControlWithSecret(arg0);
+            return result;
+        }
+    }
+    async addCashboxEntry(arg0: string, arg1: Variant__in_out, arg2: number, arg3: string, arg4: string): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.addCashboxEntry(arg0, to_candid_variant_n8(this._uploadFile, this._downloadFile, arg1), arg2, arg3, arg4);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.addCashboxEntry(arg0, to_candid_variant_n8(this._uploadFile, this._downloadFile, arg1), arg2, arg3, arg4);
+            return result;
+        }
+    }
     async addExchangeRate(arg0: number, arg1: number): Promise<void> {
         if (this.processError) {
             try {
@@ -243,6 +361,62 @@ export class Backend implements backendInterface {
             }
         } else {
             const result = await this.actor.addExchangeRate(arg0, arg1);
+            return result;
+        }
+    }
+    async addProfitMarginToCost(arg0: number, arg1: number): Promise<number> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.addProfitMarginToCost(arg0, arg1);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.addProfitMarginToCost(arg0, arg1);
+            return result;
+        }
+    }
+    async adjustCustomerDebt(arg0: string, arg1: number): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.adjustCustomerDebt(arg0, arg1);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.adjustCustomerDebt(arg0, arg1);
+            return result;
+        }
+    }
+    async aggregateNetProfitByInterval(arg0: string): Promise<Array<NetProfitEntry>> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.aggregateNetProfitByInterval(arg0);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.aggregateNetProfitByInterval(arg0);
+            return result;
+        }
+    }
+    async assignCallerUserRole(arg0: Principal, arg1: UserRole): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.assignCallerUserRole(arg0, to_candid_UserRole_n9(this._uploadFile, this._downloadFile, arg1));
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.assignCallerUserRole(arg0, to_candid_UserRole_n9(this._uploadFile, this._downloadFile, arg1));
             return result;
         }
     }
@@ -288,18 +462,106 @@ export class Backend implements backendInterface {
             return result;
         }
     }
-    async createInventoryItem(arg0: string, arg1: Blob | null, arg2: string, arg3: string, arg4: bigint, arg5: bigint, arg6: number, arg7: number, arg8: number, arg9: number): Promise<InventoryItem> {
+    async createInventoryItem(arg0: string, arg1: Blob | null, arg2: string, arg3: string, arg4: number, arg5: bigint, arg6: bigint, arg7: number, arg8: number, arg9: number, arg10: number): Promise<InventoryItem> {
         if (this.processError) {
             try {
-                const result = await this.actor.createInventoryItem(arg0, to_candid_opt_n8(this._uploadFile, this._downloadFile, arg1), arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9);
-                return from_candid_InventoryItem_n9(this._uploadFile, this._downloadFile, result);
+                const result = await this.actor.createInventoryItem(arg0, to_candid_opt_n11(this._uploadFile, this._downloadFile, arg1), arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10);
+                return from_candid_InventoryItem_n12(this._uploadFile, this._downloadFile, result);
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
-            const result = await this.actor.createInventoryItem(arg0, to_candid_opt_n8(this._uploadFile, this._downloadFile, arg1), arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9);
-            return from_candid_InventoryItem_n9(this._uploadFile, this._downloadFile, result);
+            const result = await this.actor.createInventoryItem(arg0, to_candid_opt_n11(this._uploadFile, this._downloadFile, arg1), arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10);
+            return from_candid_InventoryItem_n12(this._uploadFile, this._downloadFile, result);
+        }
+    }
+    async filterInventoryByCategory(arg0: string): Promise<Array<InventoryItem>> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.filterInventoryByCategory(arg0);
+                return from_candid_vec_n15(this._uploadFile, this._downloadFile, result);
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.filterInventoryByCategory(arg0);
+            return from_candid_vec_n15(this._uploadFile, this._downloadFile, result);
+        }
+    }
+    async findOverdueDelinquentSales(arg0: Array<Sale>): Promise<Array<Sale>> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.findOverdueDelinquentSales(to_candid_vec_n16(this._uploadFile, this._downloadFile, arg0));
+                return from_candid_vec_n22(this._uploadFile, this._downloadFile, result);
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.findOverdueDelinquentSales(to_candid_vec_n16(this._uploadFile, this._downloadFile, arg0));
+            return from_candid_vec_n22(this._uploadFile, this._downloadFile, result);
+        }
+    }
+    async getCallerUserProfile(): Promise<UserProfile | null> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getCallerUserProfile();
+                return from_candid_opt_n26(this._uploadFile, this._downloadFile, result);
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getCallerUserProfile();
+            return from_candid_opt_n26(this._uploadFile, this._downloadFile, result);
+        }
+    }
+    async getCallerUserRole(): Promise<UserRole> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getCallerUserRole();
+                return from_candid_UserRole_n27(this._uploadFile, this._downloadFile, result);
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getCallerUserRole();
+            return from_candid_UserRole_n27(this._uploadFile, this._downloadFile, result);
+        }
+    }
+    async getCashboxTotals(): Promise<{
+        cop: number;
+        usd: number;
+        ves: number;
+    }> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getCashboxTotals();
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getCashboxTotals();
+            return result;
+        }
+    }
+    async getCurrentTimestamp(): Promise<bigint> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getCurrentTimestamp();
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getCurrentTimestamp();
+            return result;
         }
     }
     async getCustomer(arg0: string): Promise<Customer> {
@@ -316,18 +578,46 @@ export class Backend implements backendInterface {
             return result;
         }
     }
+    async getCustomerDebts(): Promise<Array<[string, number]>> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getCustomerDebts();
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getCustomerDebts();
+            return result;
+        }
+    }
+    async getDistinctCategories(): Promise<Array<string>> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getDistinctCategories();
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getDistinctCategories();
+            return result;
+        }
+    }
     async getInventoryItem(arg0: string): Promise<InventoryItem> {
         if (this.processError) {
             try {
                 const result = await this.actor.getInventoryItem(arg0);
-                return from_candid_InventoryItem_n9(this._uploadFile, this._downloadFile, result);
+                return from_candid_InventoryItem_n12(this._uploadFile, this._downloadFile, result);
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
             const result = await this.actor.getInventoryItem(arg0);
-            return from_candid_InventoryItem_n9(this._uploadFile, this._downloadFile, result);
+            return from_candid_InventoryItem_n12(this._uploadFile, this._downloadFile, result);
         }
     }
     async getLatestExchangeRate(): Promise<ExchangeRate> {
@@ -344,6 +634,90 @@ export class Backend implements backendInterface {
             return result;
         }
     }
+    async getTopItemsSold(arg0: bigint): Promise<Array<TopSellingProduct>> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getTopItemsSold(arg0);
+                return from_candid_vec_n29(this._uploadFile, this._downloadFile, result);
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getTopItemsSold(arg0);
+            return from_candid_vec_n29(this._uploadFile, this._downloadFile, result);
+        }
+    }
+    async getTopSearchedProducts(arg0: bigint): Promise<Array<TopSearchedProduct>> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getTopSearchedProducts(arg0);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getTopSearchedProducts(arg0);
+            return result;
+        }
+    }
+    async getUserProfile(arg0: Principal): Promise<UserProfile | null> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getUserProfile(arg0);
+                return from_candid_opt_n26(this._uploadFile, this._downloadFile, result);
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getUserProfile(arg0);
+            return from_candid_opt_n26(this._uploadFile, this._downloadFile, result);
+        }
+    }
+    async hasDelinquentSales(arg0: Array<Sale>): Promise<boolean> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.hasDelinquentSales(to_candid_vec_n16(this._uploadFile, this._downloadFile, arg0));
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.hasDelinquentSales(to_candid_vec_n16(this._uploadFile, this._downloadFile, arg0));
+            return result;
+        }
+    }
+    async isCallerAdmin(): Promise<boolean> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.isCallerAdmin();
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.isCallerAdmin();
+            return result;
+        }
+    }
+    async listCashboxEntries(): Promise<Array<CashboxEntry>> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.listCashboxEntries();
+                return from_candid_vec_n32(this._uploadFile, this._downloadFile, result);
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.listCashboxEntries();
+            return from_candid_vec_n32(this._uploadFile, this._downloadFile, result);
+        }
+    }
     async listCustomers(): Promise<Array<Customer>> {
         if (this.processError) {
             try {
@@ -356,6 +730,20 @@ export class Backend implements backendInterface {
         } else {
             const result = await this.actor.listCustomers();
             return result;
+        }
+    }
+    async listDelinquentSales(): Promise<Array<Sale>> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.listDelinquentSales();
+                return from_candid_vec_n22(this._uploadFile, this._downloadFile, result);
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.listDelinquentSales();
+            return from_candid_vec_n22(this._uploadFile, this._downloadFile, result);
         }
     }
     async listExchangeRates(): Promise<Array<ExchangeRate>> {
@@ -376,38 +764,112 @@ export class Backend implements backendInterface {
         if (this.processError) {
             try {
                 const result = await this.actor.listInventory();
-                return from_candid_vec_n12(this._uploadFile, this._downloadFile, result);
+                return from_candid_vec_n15(this._uploadFile, this._downloadFile, result);
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
             const result = await this.actor.listInventory();
-            return from_candid_vec_n12(this._uploadFile, this._downloadFile, result);
+            return from_candid_vec_n15(this._uploadFile, this._downloadFile, result);
+        }
+    }
+    async postSale(arg0: string, arg1: string, arg2: Array<InventoryItem>, arg3: number, arg4: boolean): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.postSale(arg0, arg1, to_candid_vec_n19(this._uploadFile, this._downloadFile, arg2), arg3, arg4);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.postSale(arg0, arg1, to_candid_vec_n19(this._uploadFile, this._downloadFile, arg2), arg3, arg4);
+            return result;
+        }
+    }
+    async recordSearchEvent(arg0: RecordSearchEventPayload): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.recordSearchEvent(arg0);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.recordSearchEvent(arg0);
+            return result;
+        }
+    }
+    async saveCallerUserProfile(arg0: UserProfile): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.saveCallerUserProfile(arg0);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.saveCallerUserProfile(arg0);
+            return result;
         }
     }
     async searchProducts(arg0: string): Promise<Array<InventoryItem>> {
         if (this.processError) {
             try {
                 const result = await this.actor.searchProducts(arg0);
-                return from_candid_vec_n12(this._uploadFile, this._downloadFile, result);
+                return from_candid_vec_n15(this._uploadFile, this._downloadFile, result);
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
             const result = await this.actor.searchProducts(arg0);
-            return from_candid_vec_n12(this._uploadFile, this._downloadFile, result);
+            return from_candid_vec_n15(this._uploadFile, this._downloadFile, result);
+        }
+    }
+    async updateInventoryItem(arg0: string, arg1: UpdateInventoryItemPayload): Promise<InventoryItem> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.updateInventoryItem(arg0, to_candid_UpdateInventoryItemPayload_n36(this._uploadFile, this._downloadFile, arg1));
+                return from_candid_InventoryItem_n12(this._uploadFile, this._downloadFile, result);
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.updateInventoryItem(arg0, to_candid_UpdateInventoryItemPayload_n36(this._uploadFile, this._downloadFile, arg1));
+            return from_candid_InventoryItem_n12(this._uploadFile, this._downloadFile, result);
         }
     }
 }
-function from_candid_InventoryItem_n9(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _InventoryItem): InventoryItem {
-    return from_candid_record_n10(_uploadFile, _downloadFile, value);
+function from_candid_CashboxEntry_n33(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _CashboxEntry): CashboxEntry {
+    return from_candid_record_n34(_uploadFile, _downloadFile, value);
+}
+function from_candid_InventoryItem_n12(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _InventoryItem): InventoryItem {
+    return from_candid_record_n13(_uploadFile, _downloadFile, value);
+}
+function from_candid_Sale_n23(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _Sale): Sale {
+    return from_candid_record_n24(_uploadFile, _downloadFile, value);
+}
+function from_candid_TopSellingProduct_n30(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _TopSellingProduct): TopSellingProduct {
+    return from_candid_record_n31(_uploadFile, _downloadFile, value);
+}
+function from_candid_UserRole_n27(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _UserRole): UserRole {
+    return from_candid_variant_n28(_uploadFile, _downloadFile, value);
 }
 function from_candid__CaffeineStorageRefillResult_n4(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: __CaffeineStorageRefillResult): _CaffeineStorageRefillResult {
     return from_candid_record_n5(_uploadFile, _downloadFile, value);
 }
-function from_candid_opt_n11(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [_Blob]): Blob | null {
+function from_candid_opt_n14(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [_Blob]): Blob | null {
+    return value.length === 0 ? null : value[0];
+}
+function from_candid_opt_n25(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [_Time]): Time | null {
+    return value.length === 0 ? null : value[0];
+}
+function from_candid_opt_n26(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [_UserProfile]): UserProfile | null {
     return value.length === 0 ? null : value[0];
 }
 function from_candid_opt_n6(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [boolean]): boolean | null {
@@ -416,7 +878,7 @@ function from_candid_opt_n6(_uploadFile: (file: ExternalBlob) => Promise<Uint8Ar
 function from_candid_opt_n7(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [bigint]): bigint | null {
     return value.length === 0 ? null : value[0];
 }
-function from_candid_record_n10(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+function from_candid_record_n13(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
     id: string;
     stockMin: bigint;
     sellRetailUsd: number;
@@ -426,6 +888,7 @@ function from_candid_record_n10(_uploadFile: (file: ExternalBlob) => Promise<Uin
     sellSpecialUsd: number;
     category: string;
     photo: [] | [_Blob];
+    profitMarginPercent: number;
     costUsd: number;
 }): {
     id: string;
@@ -437,6 +900,7 @@ function from_candid_record_n10(_uploadFile: (file: ExternalBlob) => Promise<Uin
     sellSpecialUsd: number;
     category: string;
     photo?: Blob;
+    profitMarginPercent: number;
     costUsd: number;
 } {
     return {
@@ -448,8 +912,79 @@ function from_candid_record_n10(_uploadFile: (file: ExternalBlob) => Promise<Uin
         stockCurrent: value.stockCurrent,
         sellSpecialUsd: value.sellSpecialUsd,
         category: value.category,
-        photo: record_opt_to_undefined(from_candid_opt_n11(_uploadFile, _downloadFile, value.photo)),
+        photo: record_opt_to_undefined(from_candid_opt_n14(_uploadFile, _downloadFile, value.photo)),
+        profitMarginPercent: value.profitMarginPercent,
         costUsd: value.costUsd
+    };
+}
+function from_candid_record_n24(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+    id: string;
+    customerName: string;
+    dueDate: [] | [_Time];
+    totalAmountUsd: number;
+    saleTimestamp: _Time;
+    itemsSold: Array<_InventoryItem>;
+    isCreditSale: boolean;
+}): {
+    id: string;
+    customerName: string;
+    dueDate?: Time;
+    totalAmountUsd: number;
+    saleTimestamp: Time;
+    itemsSold: Array<InventoryItem>;
+    isCreditSale: boolean;
+} {
+    return {
+        id: value.id,
+        customerName: value.customerName,
+        dueDate: record_opt_to_undefined(from_candid_opt_n25(_uploadFile, _downloadFile, value.dueDate)),
+        totalAmountUsd: value.totalAmountUsd,
+        saleTimestamp: value.saleTimestamp,
+        itemsSold: from_candid_vec_n15(_uploadFile, _downloadFile, value.itemsSold),
+        isCreditSale: value.isCreditSale
+    };
+}
+function from_candid_record_n31(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+    productId: string;
+    salesCount: bigint;
+    productDetails: _InventoryItem;
+}): {
+    productId: string;
+    salesCount: bigint;
+    productDetails: InventoryItem;
+} {
+    return {
+        productId: value.productId,
+        salesCount: value.salesCount,
+        productDetails: from_candid_InventoryItem_n12(_uploadFile, _downloadFile, value.productDetails)
+    };
+}
+function from_candid_record_n34(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+    id: string;
+    entryType: {
+        _in: null;
+    } | {
+        out: null;
+    };
+    description: string;
+    currency: string;
+    timestamp: _Time;
+    amountUsd: number;
+}): {
+    id: string;
+    entryType: Variant__in_out;
+    description: string;
+    currency: string;
+    timestamp: Time;
+    amountUsd: number;
+} {
+    return {
+        id: value.id,
+        entryType: from_candid_variant_n35(_uploadFile, _downloadFile, value.entryType),
+        description: value.description,
+        currency: value.currency,
+        timestamp: value.timestamp,
+        amountUsd: value.amountUsd
     };
 }
 function from_candid_record_n5(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
@@ -464,8 +999,45 @@ function from_candid_record_n5(_uploadFile: (file: ExternalBlob) => Promise<Uint
         topped_up_amount: record_opt_to_undefined(from_candid_opt_n7(_uploadFile, _downloadFile, value.topped_up_amount))
     };
 }
-function from_candid_vec_n12(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: Array<_InventoryItem>): Array<InventoryItem> {
-    return value.map((x)=>from_candid_InventoryItem_n9(_uploadFile, _downloadFile, x));
+function from_candid_variant_n28(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+    admin: null;
+} | {
+    user: null;
+} | {
+    guest: null;
+}): UserRole {
+    return "admin" in value ? UserRole.admin : "user" in value ? UserRole.user : "guest" in value ? UserRole.guest : value;
+}
+function from_candid_variant_n35(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+    _in: null;
+} | {
+    out: null;
+}): Variant__in_out {
+    return "_in" in value ? Variant__in_out._in : "out" in value ? Variant__in_out.out : value;
+}
+function from_candid_vec_n15(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: Array<_InventoryItem>): Array<InventoryItem> {
+    return value.map((x)=>from_candid_InventoryItem_n12(_uploadFile, _downloadFile, x));
+}
+function from_candid_vec_n22(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: Array<_Sale>): Array<Sale> {
+    return value.map((x)=>from_candid_Sale_n23(_uploadFile, _downloadFile, x));
+}
+function from_candid_vec_n29(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: Array<_TopSellingProduct>): Array<TopSellingProduct> {
+    return value.map((x)=>from_candid_TopSellingProduct_n30(_uploadFile, _downloadFile, x));
+}
+function from_candid_vec_n32(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: Array<_CashboxEntry>): Array<CashboxEntry> {
+    return value.map((x)=>from_candid_CashboxEntry_n33(_uploadFile, _downloadFile, x));
+}
+function to_candid_InventoryItem_n20(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: InventoryItem): _InventoryItem {
+    return to_candid_record_n21(_uploadFile, _downloadFile, value);
+}
+function to_candid_Sale_n17(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: Sale): _Sale {
+    return to_candid_record_n18(_uploadFile, _downloadFile, value);
+}
+function to_candid_UpdateInventoryItemPayload_n36(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: UpdateInventoryItemPayload): _UpdateInventoryItemPayload {
+    return to_candid_record_n37(_uploadFile, _downloadFile, value);
+}
+function to_candid_UserRole_n9(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: UserRole): _UserRole {
+    return to_candid_variant_n10(_uploadFile, _downloadFile, value);
 }
 function to_candid__CaffeineStorageRefillInformation_n2(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _CaffeineStorageRefillInformation): __CaffeineStorageRefillInformation {
     return to_candid_record_n3(_uploadFile, _downloadFile, value);
@@ -473,8 +1045,74 @@ function to_candid__CaffeineStorageRefillInformation_n2(_uploadFile: (file: Exte
 function to_candid_opt_n1(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _CaffeineStorageRefillInformation | null): [] | [__CaffeineStorageRefillInformation] {
     return value === null ? candid_none() : candid_some(to_candid__CaffeineStorageRefillInformation_n2(_uploadFile, _downloadFile, value));
 }
-function to_candid_opt_n8(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: Blob | null): [] | [_Blob] {
+function to_candid_opt_n11(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: Blob | null): [] | [_Blob] {
     return value === null ? candid_none() : candid_some(value);
+}
+function to_candid_record_n18(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+    id: string;
+    customerName: string;
+    dueDate?: Time;
+    totalAmountUsd: number;
+    saleTimestamp: Time;
+    itemsSold: Array<InventoryItem>;
+    isCreditSale: boolean;
+}): {
+    id: string;
+    customerName: string;
+    dueDate: [] | [_Time];
+    totalAmountUsd: number;
+    saleTimestamp: _Time;
+    itemsSold: Array<_InventoryItem>;
+    isCreditSale: boolean;
+} {
+    return {
+        id: value.id,
+        customerName: value.customerName,
+        dueDate: value.dueDate ? candid_some(value.dueDate) : candid_none(),
+        totalAmountUsd: value.totalAmountUsd,
+        saleTimestamp: value.saleTimestamp,
+        itemsSold: to_candid_vec_n19(_uploadFile, _downloadFile, value.itemsSold),
+        isCreditSale: value.isCreditSale
+    };
+}
+function to_candid_record_n21(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+    id: string;
+    stockMin: bigint;
+    sellRetailUsd: number;
+    sellWholesaleUsd: number;
+    description: string;
+    stockCurrent: bigint;
+    sellSpecialUsd: number;
+    category: string;
+    photo?: Blob;
+    profitMarginPercent: number;
+    costUsd: number;
+}): {
+    id: string;
+    stockMin: bigint;
+    sellRetailUsd: number;
+    sellWholesaleUsd: number;
+    description: string;
+    stockCurrent: bigint;
+    sellSpecialUsd: number;
+    category: string;
+    photo: [] | [_Blob];
+    profitMarginPercent: number;
+    costUsd: number;
+} {
+    return {
+        id: value.id,
+        stockMin: value.stockMin,
+        sellRetailUsd: value.sellRetailUsd,
+        sellWholesaleUsd: value.sellWholesaleUsd,
+        description: value.description,
+        stockCurrent: value.stockCurrent,
+        sellSpecialUsd: value.sellSpecialUsd,
+        category: value.category,
+        photo: value.photo ? candid_some(value.photo) : candid_none(),
+        profitMarginPercent: value.profitMarginPercent,
+        costUsd: value.costUsd
+    };
 }
 function to_candid_record_n3(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
     proposed_top_up_amount?: bigint;
@@ -484,6 +1122,74 @@ function to_candid_record_n3(_uploadFile: (file: ExternalBlob) => Promise<Uint8A
     return {
         proposed_top_up_amount: value.proposed_top_up_amount ? candid_some(value.proposed_top_up_amount) : candid_none()
     };
+}
+function to_candid_record_n37(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+    stockMin?: bigint;
+    sellRetailUsd?: number;
+    sellWholesaleUsd?: number;
+    description?: string;
+    stockCurrent?: bigint;
+    sellSpecialUsd?: number;
+    category?: string;
+    photo?: Blob;
+    profitMarginPercent?: number;
+    costUsd?: number;
+}): {
+    stockMin: [] | [bigint];
+    sellRetailUsd: [] | [number];
+    sellWholesaleUsd: [] | [number];
+    description: [] | [string];
+    stockCurrent: [] | [bigint];
+    sellSpecialUsd: [] | [number];
+    category: [] | [string];
+    photo: [] | [_Blob];
+    profitMarginPercent: [] | [number];
+    costUsd: [] | [number];
+} {
+    return {
+        stockMin: value.stockMin ? candid_some(value.stockMin) : candid_none(),
+        sellRetailUsd: value.sellRetailUsd ? candid_some(value.sellRetailUsd) : candid_none(),
+        sellWholesaleUsd: value.sellWholesaleUsd ? candid_some(value.sellWholesaleUsd) : candid_none(),
+        description: value.description ? candid_some(value.description) : candid_none(),
+        stockCurrent: value.stockCurrent ? candid_some(value.stockCurrent) : candid_none(),
+        sellSpecialUsd: value.sellSpecialUsd ? candid_some(value.sellSpecialUsd) : candid_none(),
+        category: value.category ? candid_some(value.category) : candid_none(),
+        photo: value.photo ? candid_some(value.photo) : candid_none(),
+        profitMarginPercent: value.profitMarginPercent ? candid_some(value.profitMarginPercent) : candid_none(),
+        costUsd: value.costUsd ? candid_some(value.costUsd) : candid_none()
+    };
+}
+function to_candid_variant_n10(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: UserRole): {
+    admin: null;
+} | {
+    user: null;
+} | {
+    guest: null;
+} {
+    return value == UserRole.admin ? {
+        admin: null
+    } : value == UserRole.user ? {
+        user: null
+    } : value == UserRole.guest ? {
+        guest: null
+    } : value;
+}
+function to_candid_variant_n8(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: Variant__in_out): {
+    _in: null;
+} | {
+    out: null;
+} {
+    return value == Variant__in_out._in ? {
+        _in: null
+    } : value == Variant__in_out.out ? {
+        out: null
+    } : value;
+}
+function to_candid_vec_n16(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: Array<Sale>): Array<_Sale> {
+    return value.map((x)=>to_candid_Sale_n17(_uploadFile, _downloadFile, x));
+}
+function to_candid_vec_n19(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: Array<InventoryItem>): Array<_InventoryItem> {
+    return value.map((x)=>to_candid_InventoryItem_n20(_uploadFile, _downloadFile, x));
 }
 export interface CreateActorOptions {
     agent?: Agent;

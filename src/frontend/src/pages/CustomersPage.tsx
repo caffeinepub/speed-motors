@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Plus, Users } from 'lucide-react';
 import { useNavigate } from '@tanstack/react-router';
-import { useCustomers, useCreateCustomer } from '@/hooks/useQueries';
+import { useCustomers, useCreateCustomer, useOverdueDelinquentSales } from '@/hooks/useQueries';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
@@ -10,12 +10,14 @@ import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import LargeButton from '@/components/LargeButton';
 import { Badge } from '@/components/ui/badge';
+import OverdueCreditAlert from '@/components/customers/OverdueCreditAlert';
 import { formatUSD } from '@/lib/currency';
 import { generateId } from '@/lib/utils';
 import { toast } from 'sonner';
 
 export default function CustomersPage() {
   const { data: customers = [], isLoading } = useCustomers();
+  const { data: overdueSales = [] } = useOverdueDelinquentSales();
   const createCustomer = useCreateCustomer();
   const navigate = useNavigate();
   const [showForm, setShowForm] = useState(false);
@@ -23,6 +25,9 @@ export default function CustomersPage() {
     name: '',
     contactInfo: '',
   });
+
+  const overdueCustomerNames = new Set(overdueSales.map(sale => sale.customerName));
+  const overdueCount = overdueCustomerNames.size;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -55,6 +60,10 @@ export default function CustomersPage() {
           Agregar Cliente
         </LargeButton>
       </div>
+
+      {overdueCount > 0 && (
+        <OverdueCreditAlert count={overdueCount} />
+      )}
 
       <Card>
         <CardContent className="p-0">
@@ -89,30 +98,38 @@ export default function CustomersPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {customers.map((customer) => (
-                    <TableRow 
-                      key={customer.id}
-                      className="cursor-pointer hover:bg-muted"
-                      onClick={() => navigate({ to: `/customers/${customer.id}` })}
-                    >
-                      <TableCell className="font-medium">{customer.id}</TableCell>
-                      <TableCell>{customer.name}</TableCell>
-                      <TableCell className="text-muted-foreground">{customer.contactInfo}</TableCell>
-                      <TableCell className="text-right">
-                        <span className={customer.debtUsd > 0 ? 'font-medium text-destructive' : ''}>
-                          {formatUSD(customer.debtUsd)}
-                        </span>
-                        {customer.debtUsd > 0 && (
-                          <Badge variant="destructive" className="ml-2">Deuda</Badge>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <LargeButton variant="outline" size="sm">
-                          Ver Detalles
-                        </LargeButton>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                  {customers.map((customer) => {
+                    const hasOverdue = overdueCustomerNames.has(customer.name);
+                    return (
+                      <TableRow 
+                        key={customer.id}
+                        className="cursor-pointer hover:bg-muted"
+                        onClick={() => navigate({ to: `/customers/${customer.id}` })}
+                      >
+                        <TableCell className="font-medium">{customer.id}</TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            {customer.name}
+                            {hasOverdue && <OverdueCreditAlert variant="inline" />}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">{customer.contactInfo}</TableCell>
+                        <TableCell className="text-right">
+                          <span className={customer.debtUsd > 0 ? 'font-medium text-destructive' : ''}>
+                            {formatUSD(customer.debtUsd)}
+                          </span>
+                          {customer.debtUsd > 0 && (
+                            <Badge variant="destructive" className="ml-2">Deuda</Badge>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <LargeButton variant="outline" size="sm">
+                            Ver Detalles
+                          </LargeButton>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             </div>

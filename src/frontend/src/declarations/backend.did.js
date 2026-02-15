@@ -19,6 +19,16 @@ export const _CaffeineStorageRefillResult = IDL.Record({
   'success' : IDL.Opt(IDL.Bool),
   'topped_up_amount' : IDL.Opt(IDL.Nat),
 });
+export const NetProfitEntry = IDL.Record({
+  'period' : IDL.Text,
+  'profitMargin' : IDL.Float64,
+  'netProfit' : IDL.Float64,
+});
+export const UserRole = IDL.Variant({
+  'admin' : IDL.Null,
+  'user' : IDL.Null,
+  'guest' : IDL.Null,
+});
 export const Customer = IDL.Record({
   'id' : IDL.Text,
   'contactInfo' : IDL.Text,
@@ -36,13 +46,57 @@ export const InventoryItem = IDL.Record({
   'sellSpecialUsd' : IDL.Float64,
   'category' : IDL.Text,
   'photo' : IDL.Opt(Blob),
+  'profitMarginPercent' : IDL.Float64,
   'costUsd' : IDL.Float64,
 });
 export const Time = IDL.Int;
+export const Sale = IDL.Record({
+  'id' : IDL.Text,
+  'customerName' : IDL.Text,
+  'dueDate' : IDL.Opt(Time),
+  'totalAmountUsd' : IDL.Float64,
+  'saleTimestamp' : Time,
+  'itemsSold' : IDL.Vec(InventoryItem),
+  'isCreditSale' : IDL.Bool,
+});
+export const UserProfile = IDL.Record({ 'name' : IDL.Text, 'role' : IDL.Text });
 export const ExchangeRate = IDL.Record({
   'copPerUsd' : IDL.Float64,
   'bcvVesPerUsd' : IDL.Float64,
   'date' : Time,
+});
+export const TopSellingProduct = IDL.Record({
+  'productId' : IDL.Text,
+  'salesCount' : IDL.Nat,
+  'productDetails' : InventoryItem,
+});
+export const TopSearchedProduct = IDL.Record({
+  'searchTerm' : IDL.Text,
+  'searchCount' : IDL.Nat,
+});
+export const CashboxEntry = IDL.Record({
+  'id' : IDL.Text,
+  'entryType' : IDL.Variant({ '_in' : IDL.Null, 'out' : IDL.Null }),
+  'description' : IDL.Text,
+  'currency' : IDL.Text,
+  'timestamp' : Time,
+  'amountUsd' : IDL.Float64,
+});
+export const RecordSearchEventPayload = IDL.Record({
+  'searchTerm' : IDL.Text,
+  'timestamp' : Time,
+});
+export const UpdateInventoryItemPayload = IDL.Record({
+  'stockMin' : IDL.Opt(IDL.Nat),
+  'sellRetailUsd' : IDL.Opt(IDL.Float64),
+  'sellWholesaleUsd' : IDL.Opt(IDL.Float64),
+  'description' : IDL.Opt(IDL.Text),
+  'stockCurrent' : IDL.Opt(IDL.Nat),
+  'sellSpecialUsd' : IDL.Opt(IDL.Float64),
+  'category' : IDL.Opt(IDL.Text),
+  'photo' : IDL.Opt(Blob),
+  'profitMarginPercent' : IDL.Opt(IDL.Float64),
+  'costUsd' : IDL.Opt(IDL.Float64),
 });
 
 export const idlService = IDL.Service({
@@ -72,7 +126,31 @@ export const idlService = IDL.Service({
       [],
     ),
   '_caffeineStorageUpdateGatewayPrincipals' : IDL.Func([], [], []),
+  '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
+  'addCashboxEntry' : IDL.Func(
+      [
+        IDL.Text,
+        IDL.Variant({ '_in' : IDL.Null, 'out' : IDL.Null }),
+        IDL.Float64,
+        IDL.Text,
+        IDL.Text,
+      ],
+      [],
+      [],
+    ),
   'addExchangeRate' : IDL.Func([IDL.Float64, IDL.Float64], [], []),
+  'addProfitMarginToCost' : IDL.Func(
+      [IDL.Float64, IDL.Float64],
+      [IDL.Float64],
+      [],
+    ),
+  'adjustCustomerDebt' : IDL.Func([IDL.Text, IDL.Float64], [], []),
+  'aggregateNetProfitByInterval' : IDL.Func(
+      [IDL.Text],
+      [IDL.Vec(NetProfitEntry)],
+      ['query'],
+    ),
+  'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
   'convertPriceToCop' : IDL.Func([IDL.Float64], [IDL.Float64], []),
   'convertPriceToVes' : IDL.Func([IDL.Float64], [IDL.Float64], []),
   'createCustomer' : IDL.Func([IDL.Text, IDL.Text, IDL.Text], [Customer], []),
@@ -82,6 +160,7 @@ export const idlService = IDL.Service({
         IDL.Opt(Blob),
         IDL.Text,
         IDL.Text,
+        IDL.Float64,
         IDL.Nat,
         IDL.Nat,
         IDL.Float64,
@@ -92,13 +171,74 @@ export const idlService = IDL.Service({
       [InventoryItem],
       [],
     ),
+  'filterInventoryByCategory' : IDL.Func(
+      [IDL.Text],
+      [IDL.Vec(InventoryItem)],
+      ['query'],
+    ),
+  'findOverdueDelinquentSales' : IDL.Func(
+      [IDL.Vec(Sale)],
+      [IDL.Vec(Sale)],
+      ['query'],
+    ),
+  'getCallerUserProfile' : IDL.Func([], [IDL.Opt(UserProfile)], ['query']),
+  'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
+  'getCashboxTotals' : IDL.Func(
+      [],
+      [
+        IDL.Record({
+          'cop' : IDL.Float64,
+          'usd' : IDL.Float64,
+          'ves' : IDL.Float64,
+        }),
+      ],
+      ['query'],
+    ),
+  'getCurrentTimestamp' : IDL.Func([], [IDL.Int], ['query']),
   'getCustomer' : IDL.Func([IDL.Text], [Customer], ['query']),
+  'getCustomerDebts' : IDL.Func(
+      [],
+      [IDL.Vec(IDL.Tuple(IDL.Text, IDL.Float64))],
+      ['query'],
+    ),
+  'getDistinctCategories' : IDL.Func([], [IDL.Vec(IDL.Text)], ['query']),
   'getInventoryItem' : IDL.Func([IDL.Text], [InventoryItem], ['query']),
   'getLatestExchangeRate' : IDL.Func([], [ExchangeRate], ['query']),
+  'getTopItemsSold' : IDL.Func(
+      [IDL.Nat],
+      [IDL.Vec(TopSellingProduct)],
+      ['query'],
+    ),
+  'getTopSearchedProducts' : IDL.Func(
+      [IDL.Nat],
+      [IDL.Vec(TopSearchedProduct)],
+      ['query'],
+    ),
+  'getUserProfile' : IDL.Func(
+      [IDL.Principal],
+      [IDL.Opt(UserProfile)],
+      ['query'],
+    ),
+  'hasDelinquentSales' : IDL.Func([IDL.Vec(Sale)], [IDL.Bool], ['query']),
+  'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
+  'listCashboxEntries' : IDL.Func([], [IDL.Vec(CashboxEntry)], ['query']),
   'listCustomers' : IDL.Func([], [IDL.Vec(Customer)], ['query']),
+  'listDelinquentSales' : IDL.Func([], [IDL.Vec(Sale)], ['query']),
   'listExchangeRates' : IDL.Func([], [IDL.Vec(ExchangeRate)], ['query']),
   'listInventory' : IDL.Func([], [IDL.Vec(InventoryItem)], ['query']),
+  'postSale' : IDL.Func(
+      [IDL.Text, IDL.Text, IDL.Vec(InventoryItem), IDL.Float64, IDL.Bool],
+      [],
+      [],
+    ),
+  'recordSearchEvent' : IDL.Func([RecordSearchEventPayload], [], []),
+  'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
   'searchProducts' : IDL.Func([IDL.Text], [IDL.Vec(InventoryItem)], ['query']),
+  'updateInventoryItem' : IDL.Func(
+      [IDL.Text, UpdateInventoryItemPayload],
+      [InventoryItem],
+      [],
+    ),
 });
 
 export const idlInitArgs = [];
@@ -114,6 +254,16 @@ export const idlFactory = ({ IDL }) => {
   const _CaffeineStorageRefillResult = IDL.Record({
     'success' : IDL.Opt(IDL.Bool),
     'topped_up_amount' : IDL.Opt(IDL.Nat),
+  });
+  const NetProfitEntry = IDL.Record({
+    'period' : IDL.Text,
+    'profitMargin' : IDL.Float64,
+    'netProfit' : IDL.Float64,
+  });
+  const UserRole = IDL.Variant({
+    'admin' : IDL.Null,
+    'user' : IDL.Null,
+    'guest' : IDL.Null,
   });
   const Customer = IDL.Record({
     'id' : IDL.Text,
@@ -132,13 +282,57 @@ export const idlFactory = ({ IDL }) => {
     'sellSpecialUsd' : IDL.Float64,
     'category' : IDL.Text,
     'photo' : IDL.Opt(Blob),
+    'profitMarginPercent' : IDL.Float64,
     'costUsd' : IDL.Float64,
   });
   const Time = IDL.Int;
+  const Sale = IDL.Record({
+    'id' : IDL.Text,
+    'customerName' : IDL.Text,
+    'dueDate' : IDL.Opt(Time),
+    'totalAmountUsd' : IDL.Float64,
+    'saleTimestamp' : Time,
+    'itemsSold' : IDL.Vec(InventoryItem),
+    'isCreditSale' : IDL.Bool,
+  });
+  const UserProfile = IDL.Record({ 'name' : IDL.Text, 'role' : IDL.Text });
   const ExchangeRate = IDL.Record({
     'copPerUsd' : IDL.Float64,
     'bcvVesPerUsd' : IDL.Float64,
     'date' : Time,
+  });
+  const TopSellingProduct = IDL.Record({
+    'productId' : IDL.Text,
+    'salesCount' : IDL.Nat,
+    'productDetails' : InventoryItem,
+  });
+  const TopSearchedProduct = IDL.Record({
+    'searchTerm' : IDL.Text,
+    'searchCount' : IDL.Nat,
+  });
+  const CashboxEntry = IDL.Record({
+    'id' : IDL.Text,
+    'entryType' : IDL.Variant({ '_in' : IDL.Null, 'out' : IDL.Null }),
+    'description' : IDL.Text,
+    'currency' : IDL.Text,
+    'timestamp' : Time,
+    'amountUsd' : IDL.Float64,
+  });
+  const RecordSearchEventPayload = IDL.Record({
+    'searchTerm' : IDL.Text,
+    'timestamp' : Time,
+  });
+  const UpdateInventoryItemPayload = IDL.Record({
+    'stockMin' : IDL.Opt(IDL.Nat),
+    'sellRetailUsd' : IDL.Opt(IDL.Float64),
+    'sellWholesaleUsd' : IDL.Opt(IDL.Float64),
+    'description' : IDL.Opt(IDL.Text),
+    'stockCurrent' : IDL.Opt(IDL.Nat),
+    'sellSpecialUsd' : IDL.Opt(IDL.Float64),
+    'category' : IDL.Opt(IDL.Text),
+    'photo' : IDL.Opt(Blob),
+    'profitMarginPercent' : IDL.Opt(IDL.Float64),
+    'costUsd' : IDL.Opt(IDL.Float64),
   });
   
   return IDL.Service({
@@ -168,7 +362,31 @@ export const idlFactory = ({ IDL }) => {
         [],
       ),
     '_caffeineStorageUpdateGatewayPrincipals' : IDL.Func([], [], []),
+    '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
+    'addCashboxEntry' : IDL.Func(
+        [
+          IDL.Text,
+          IDL.Variant({ '_in' : IDL.Null, 'out' : IDL.Null }),
+          IDL.Float64,
+          IDL.Text,
+          IDL.Text,
+        ],
+        [],
+        [],
+      ),
     'addExchangeRate' : IDL.Func([IDL.Float64, IDL.Float64], [], []),
+    'addProfitMarginToCost' : IDL.Func(
+        [IDL.Float64, IDL.Float64],
+        [IDL.Float64],
+        [],
+      ),
+    'adjustCustomerDebt' : IDL.Func([IDL.Text, IDL.Float64], [], []),
+    'aggregateNetProfitByInterval' : IDL.Func(
+        [IDL.Text],
+        [IDL.Vec(NetProfitEntry)],
+        ['query'],
+      ),
+    'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
     'convertPriceToCop' : IDL.Func([IDL.Float64], [IDL.Float64], []),
     'convertPriceToVes' : IDL.Func([IDL.Float64], [IDL.Float64], []),
     'createCustomer' : IDL.Func([IDL.Text, IDL.Text, IDL.Text], [Customer], []),
@@ -178,6 +396,7 @@ export const idlFactory = ({ IDL }) => {
           IDL.Opt(Blob),
           IDL.Text,
           IDL.Text,
+          IDL.Float64,
           IDL.Nat,
           IDL.Nat,
           IDL.Float64,
@@ -188,16 +407,77 @@ export const idlFactory = ({ IDL }) => {
         [InventoryItem],
         [],
       ),
+    'filterInventoryByCategory' : IDL.Func(
+        [IDL.Text],
+        [IDL.Vec(InventoryItem)],
+        ['query'],
+      ),
+    'findOverdueDelinquentSales' : IDL.Func(
+        [IDL.Vec(Sale)],
+        [IDL.Vec(Sale)],
+        ['query'],
+      ),
+    'getCallerUserProfile' : IDL.Func([], [IDL.Opt(UserProfile)], ['query']),
+    'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
+    'getCashboxTotals' : IDL.Func(
+        [],
+        [
+          IDL.Record({
+            'cop' : IDL.Float64,
+            'usd' : IDL.Float64,
+            'ves' : IDL.Float64,
+          }),
+        ],
+        ['query'],
+      ),
+    'getCurrentTimestamp' : IDL.Func([], [IDL.Int], ['query']),
     'getCustomer' : IDL.Func([IDL.Text], [Customer], ['query']),
+    'getCustomerDebts' : IDL.Func(
+        [],
+        [IDL.Vec(IDL.Tuple(IDL.Text, IDL.Float64))],
+        ['query'],
+      ),
+    'getDistinctCategories' : IDL.Func([], [IDL.Vec(IDL.Text)], ['query']),
     'getInventoryItem' : IDL.Func([IDL.Text], [InventoryItem], ['query']),
     'getLatestExchangeRate' : IDL.Func([], [ExchangeRate], ['query']),
+    'getTopItemsSold' : IDL.Func(
+        [IDL.Nat],
+        [IDL.Vec(TopSellingProduct)],
+        ['query'],
+      ),
+    'getTopSearchedProducts' : IDL.Func(
+        [IDL.Nat],
+        [IDL.Vec(TopSearchedProduct)],
+        ['query'],
+      ),
+    'getUserProfile' : IDL.Func(
+        [IDL.Principal],
+        [IDL.Opt(UserProfile)],
+        ['query'],
+      ),
+    'hasDelinquentSales' : IDL.Func([IDL.Vec(Sale)], [IDL.Bool], ['query']),
+    'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
+    'listCashboxEntries' : IDL.Func([], [IDL.Vec(CashboxEntry)], ['query']),
     'listCustomers' : IDL.Func([], [IDL.Vec(Customer)], ['query']),
+    'listDelinquentSales' : IDL.Func([], [IDL.Vec(Sale)], ['query']),
     'listExchangeRates' : IDL.Func([], [IDL.Vec(ExchangeRate)], ['query']),
     'listInventory' : IDL.Func([], [IDL.Vec(InventoryItem)], ['query']),
+    'postSale' : IDL.Func(
+        [IDL.Text, IDL.Text, IDL.Vec(InventoryItem), IDL.Float64, IDL.Bool],
+        [],
+        [],
+      ),
+    'recordSearchEvent' : IDL.Func([RecordSearchEventPayload], [], []),
+    'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
     'searchProducts' : IDL.Func(
         [IDL.Text],
         [IDL.Vec(InventoryItem)],
         ['query'],
+      ),
+    'updateInventoryItem' : IDL.Func(
+        [IDL.Text, UpdateInventoryItemPayload],
+        [InventoryItem],
+        [],
       ),
   });
 };

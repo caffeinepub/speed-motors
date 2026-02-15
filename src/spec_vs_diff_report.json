@@ -1,36 +1,62 @@
 {
   "kind": "spec_vs_diff_report",
   "version": "1.0",
-  "generatedAt": "2026-02-14T14:32:02.193Z",
-  "summary": "The diff largely implements Spanish localization across the sidebar navigation, header search, global search modal, and multiple module pages (Inventory, Rates, Customers, Customer Detail, Dashboard, Sales, Cashbox, Suppliers, Closures), including many empty/loading/error states and toast messages. However, the diff also includes unrequested styling/theme changes (index.css and tailwind config). Due to truncation, it’s not possible to conclusively verify that *no* English strings remain everywhere in the frontend.",
-  "missing_requirements": [],
-  "hallucinated_features": [
+  "generatedAt": "2026-02-15T14:46:30.679Z",
+  "summary": "Diff shows frontend Dashboard wiring for new analytics hooks and added i18n keys for analytics. Backend changes are truncated; while a new `SearchEvent` type and `searchEvents` store are introduced, there is no visible evidence of the required aggregation query methods, time-range filtering, or bounded per-product search counters. Dashboard analytics controls shown include limits and interval selection, but no clear preset time-range selection is evidenced.",
+  "missing_requirements": [
     {
-      "description": "UI theme/styling overhaul (global color system using warm orange/amber tones, light/dark mode tokens) beyond localization needs.",
-      "reason": "REQ-13 is about replacing English strings with Spanish; it explicitly lists localization scope and notes styling/theme changes are non-goals except as necessary for longer Spanish strings. The diff summary indicates substantial theme work.",
+      "id": "REQ-1",
+      "requirement": "Investigate and fix the current build/deploy failure so the project compiles and deploys successfully again.",
+      "reason": "The diff summary does not provide evidence of build/deploy fixes (e.g., config/package changes, compilation error fixes). Only partial code changes are shown, and backend/frontend build status cannot be verified from the provided excerpts.",
       "evidence": [
-        "frontend-file-summaries.txt (mentions frontend/src/index.css warm orange/amber OKLCH system, comprehensive light/dark mode support)",
-        "frontend-file-summaries.txt (mentions frontend/tailwind.config.js extended color tokens, custom shadows, animation utilities)"
+        "backend/main.mo (truncated)",
+        "frontend/src/hooks/useQueries.ts (truncated)",
+        "frontend/src/pages/DashboardPage.tsx (truncated)"
+      ]
+    },
+    {
+      "id": "REQ-2",
+      "requirement": "Backend exposes query methods for (1) top-selling products (with configurable limit and optional time range), (2) most-searched products (with configurable limit and optional time range), and (3) net profit grouped by period for a requested time range, enforcing at least user permission.",
+      "reason": "`backend/main.mo` is truncated and does not show any of the required analytics query method definitions, parameters (limit/time range/period), ranking/grouping logic, or access-control checks for these new analytics endpoints.",
+      "evidence": [
+        "backend/main.mo (truncated)"
+      ]
+    },
+    {
+      "id": "REQ-3",
+      "requirement": "Dashboard supports selecting a time range/period grouping (at minimum presets like last 7 days/last 30 days/this month) and updates analytics accordingly.",
+      "reason": "`DashboardPage.tsx` shows state for `topItemsCount`, `topSearchCount`, and `profitInterval` (default `'day'`) but the excerpt does not show any time-range preset selection (last 7/30 days/this month) nor passing a time-range to hooks. Hooks used in the excerpt also only take count/interval parameters, not a date range.",
+      "evidence": [
+        "frontend/src/pages/DashboardPage.tsx (truncated)"
+      ]
+    },
+    {
+      "id": "REQ-4",
+      "requirement": "Record search events in a bounded/managed way (e.g., per-product counters) while keeping search results unchanged.",
+      "reason": "Backend introduces `SearchEvent` and stores `searchEvents` as a `List`, which suggests logging each search event rather than maintaining bounded per-product counters. No evidence is shown of bounding/aggregation strategy, nor evidence that search behavior was updated to increment per-product counters.",
+      "evidence": [
+        "backend/main.mo (truncated): `public type SearchEvent`",
+        "backend/main.mo (truncated): `let searchEvents = List.empty<SearchEvent>();`"
       ]
     }
   ],
-  "confidence": 0.72,
+  "hallucinated_features": [
+    {
+      "description": "Storing search tracking as an unbounded list of `SearchEvent` records (searchTerm + timestamp).",
+      "reason": "The request explicitly calls for bounded/managed storage (e.g., per-product counters) rather than logging every query. The diff shows a raw `List` of events, which can grow without bound and does not match the suggested storage approach.",
+      "evidence": [
+        "backend/main.mo (truncated): `public type SearchEvent = { searchTerm : Text; timestamp : Time.Time; };`",
+        "backend/main.mo (truncated): `let searchEvents = List.empty<SearchEvent>();`"
+      ]
+    }
+  ],
+  "confidence": 0.62,
   "changed_files": [
+    "backend/main.mo",
     "frontend-file-summaries.txt",
-    "frontend/index.html",
-    "frontend/src/components/inventory/InventoryItemForm.tsx",
-    "frontend/src/components/layout/AppLayout.tsx",
-    "frontend/src/components/search/GlobalSearch.tsx",
-    "frontend/src/pages/CashboxPage.tsx",
-    "frontend/src/pages/ClosuresPage.tsx",
-    "frontend/src/pages/CustomerDetailPage.tsx",
-    "frontend/src/pages/CustomersPage.tsx",
+    "frontend/src/hooks/useQueries.ts",
+    "frontend/src/lib/i18n.ts",
     "frontend/src/pages/DashboardPage.tsx",
-    "frontend/src/pages/InventoryPage.tsx",
-    "frontend/src/pages/RatesPage.tsx",
-    "frontend/src/pages/SalesPage.tsx",
-    "frontend/src/pages/SupplierDetailPage.tsx",
-    "frontend/src/pages/SuppliersPage.tsx",
     "project_state.json"
   ]
 }

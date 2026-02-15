@@ -7,6 +7,8 @@ import { useDebounce } from '@/hooks/useDebounce';
 import { useSearchProducts } from '@/hooks/useQueries';
 import { formatUSD } from '@/lib/currency';
 import { Badge } from '@/components/ui/badge';
+import type { InventoryItem } from '@/backend';
+import { t } from '@/lib/i18n';
 
 interface GlobalSearchProps {
   open: boolean;
@@ -15,9 +17,29 @@ interface GlobalSearchProps {
 
 export default function GlobalSearch({ open, onOpenChange }: GlobalSearchProps) {
   const [query, setQuery] = useState('');
+  const [results, setResults] = useState<InventoryItem[]>([]);
   const debouncedQuery = useDebounce(query, 300);
-  const { data: results = [], isLoading } = useSearchProducts(debouncedQuery);
+  const searchProducts = useSearchProducts();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const performSearch = async () => {
+      if (!debouncedQuery.trim()) {
+        setResults([]);
+        return;
+      }
+
+      try {
+        const searchResults = await searchProducts.mutateAsync(debouncedQuery);
+        setResults(searchResults);
+      } catch (error) {
+        console.error('Search error:', error);
+        setResults([]);
+      }
+    };
+
+    performSearch();
+  }, [debouncedQuery]);
 
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
@@ -41,14 +63,14 @@ export default function GlobalSearch({ open, onOpenChange }: GlobalSearchProps) 
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Buscar Productos</DialogTitle>
+          <DialogTitle>{t('search.title')}</DialogTitle>
         </DialogHeader>
         
         <div className="space-y-4">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
-              placeholder="Buscar por nombre o categoría..."
+              placeholder={t('search.placeholder')}
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               className="pl-10"
@@ -57,19 +79,19 @@ export default function GlobalSearch({ open, onOpenChange }: GlobalSearchProps) 
           </div>
 
           <div className="max-h-96 overflow-y-auto">
-            {isLoading && (
+            {searchProducts.isPending && (
               <div className="py-8 text-center text-sm text-muted-foreground">
-                Buscando...
+                {t('search.searching')}
               </div>
             )}
 
-            {!isLoading && debouncedQuery && results.length === 0 && (
+            {!searchProducts.isPending && debouncedQuery && results.length === 0 && (
               <div className="py-8 text-center text-sm text-muted-foreground">
-                No se encontraron productos
+                {t('search.no_results')}
               </div>
             )}
 
-            {!isLoading && results.length > 0 && (
+            {!searchProducts.isPending && results.length > 0 && (
               <div className="space-y-2">
                 {results.map((product) => (
                   <button
@@ -81,7 +103,7 @@ export default function GlobalSearch({ open, onOpenChange }: GlobalSearchProps) 
                       <Package className="h-6 w-6 text-muted-foreground" />
                     </div>
                     <div className="flex-1">
-                      <div className="font-medium">{product.description}</div>
+                      <div className="font-medium">{product.description || product.category}</div>
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
                         <Badge variant="outline">{product.category}</Badge>
                         <span>Stock: {Number(product.stockCurrent)}</span>
@@ -89,7 +111,7 @@ export default function GlobalSearch({ open, onOpenChange }: GlobalSearchProps) 
                     </div>
                     <div className="text-right">
                       <div className="font-medium">{formatUSD(product.sellRetailUsd)}</div>
-                      <div className="text-xs text-muted-foreground">Detal</div>
+                      <div className="text-xs text-muted-foreground">{t('sales.retail')}</div>
                     </div>
                   </button>
                 ))}

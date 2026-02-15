@@ -2,23 +2,10 @@
   "kind": "feature_evidence_report",
   "features": [
     {
-      "featureId": "feature-make-spanish-the-default-language-for-the-application-ui-by-replacing-hard-coded-english-strings-with-spanish-across-the-navigation-header-search-pages-dialogs-empty-states-alerts-and-toast-messages",
-      "featureTitle": "Make Spanish the default language for the application UI by replacing hard-coded English strings with Spanish across the navigation, header/search, pages, dialogs, empty states, alerts, and toast messages.",
+      "featureId": "feature-investigate-and-fix-the-current-build-deploy-failure-so-the-project-compiles-and-deploys-successfully-again",
+      "featureTitle": "Investigate and fix the current build/deploy failure so the project compiles and deploys successfully again.",
       "files": [
-        "frontend/index.html",
-        "frontend/src/components/inventory/InventoryItemForm.tsx",
-        "frontend/src/components/layout/AppLayout.tsx",
-        "frontend/src/components/search/GlobalSearch.tsx",
-        "frontend/src/pages/CashboxPage.tsx",
-        "frontend/src/pages/ClosuresPage.tsx",
-        "frontend/src/pages/CustomerDetailPage.tsx",
-        "frontend/src/pages/CustomersPage.tsx",
-        "frontend/src/pages/DashboardPage.tsx",
-        "frontend/src/pages/InventoryPage.tsx",
-        "frontend/src/pages/RatesPage.tsx",
-        "frontend/src/pages/SalesPage.tsx",
-        "frontend/src/pages/SupplierDetailPage.tsx",
-        "frontend/src/pages/SuppliersPage.tsx"
+        "frontend/src/hooks/useQueries.ts"
       ],
       "components": [
         "blob-storage@4.0.0",
@@ -26,10 +13,33 @@
         "shadcn-ui@1.0.0",
         "build-template-react@1.0.0",
         "initial-app@1.0.0",
-        "github-export-icp-cli@1.0.0"
+        "github-export-icp-cli@1.0.0",
+        "authorization@4.0.0"
       ],
       "testIds": [
-        "REQ-13"
+        "REQ-1"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-update-the-frontend-to-consume-and-display-the-new-advanced-analytics-on-the-dashboard-top-selling-products-most-searched-products-and-net-profit-by-period-with-sensible-loading-empty-states",
+      "featureTitle": "Update the frontend to consume and display the new advanced analytics on the Dashboard (top-selling products, most-searched products, and net profit by period), with sensible loading/empty states.",
+      "files": [
+        "frontend/src/hooks/useQueries.ts",
+        "frontend/src/lib/i18n.ts",
+        "frontend/src/pages/DashboardPage.tsx"
+      ],
+      "components": [
+        "blob-storage@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0",
+        "authorization@4.0.0"
+      ],
+      "testIds": [
+        "REQ-3"
       ],
       "confidence": "high"
     }

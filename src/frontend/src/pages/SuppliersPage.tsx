@@ -1,22 +1,21 @@
-import { AlertCircle, Truck } from 'lucide-react';
+import { Truck } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { t } from '@/lib/i18n';
 
 export default function SuppliersPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold">Proveedores</h1>
-        <p className="text-muted-foreground">Gestionar proveedores y stock entrante</p>
+        <h1 className="text-3xl font-bold">{t('suppliers.title')}</h1>
+        <p className="text-muted-foreground">{t('suppliers.subtitle')}</p>
       </div>
 
       <Alert>
-        <AlertCircle className="h-4 w-4" />
-        <AlertTitle>Integración de Backend Requerida</AlertTitle>
+        <Truck className="h-4 w-4" />
+        <AlertTitle>{t('suppliers.backend_required')}</AlertTitle>
         <AlertDescription>
-          La gestión de proveedores requiere métodos en el backend para crear proveedores, registrar entradas de stock, 
-          seguimiento de balances por pagar y actualización de inventario. Estas funcionalidades estarán disponibles 
-          una vez que se extienda el backend con las entidades Supplier y SupplierStockEntry.
+          {t('suppliers.backend_description')}
         </AlertDescription>
       </Alert>
 
@@ -24,20 +23,20 @@ export default function SuppliersPage() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Truck className="h-5 w-5" />
-            Módulo de Proveedores
+            {t('suppliers.module_title')}
           </CardTitle>
         </CardHeader>
         <CardContent>
           <p className="text-sm text-muted-foreground">
-            Este módulo te permitirá:
+            {t('suppliers.module_description')}
           </p>
           <ul className="mt-2 list-inside list-disc space-y-1 text-sm text-muted-foreground">
-            <li>Agregar y gestionar información de proveedores</li>
-            <li>Registrar mercancía entrante con líneas de artículos</li>
-            <li>Marcar entradas como Pagado o Por Pagar</li>
-            <li>Seguimiento de balances por pagar por proveedor</li>
-            <li>Actualizar automáticamente stock de inventario</li>
-            <li>Crear entradas de Salida de caja para stock pagado</li>
+            <li>{t('suppliers.feature_1')}</li>
+            <li>{t('suppliers.feature_2')}</li>
+            <li>{t('suppliers.feature_3')}</li>
+            <li>{t('suppliers.feature_4')}</li>
+            <li>{t('suppliers.feature_5')}</li>
+            <li>{t('suppliers.feature_6')}</li>
           </ul>
         </CardContent>
       </Card>

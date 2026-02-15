@@ -1,92 +1,63 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Localizar la UI del ERP a español (es) por defecto",
+  "title": "Fix frontend build and add advanced analytics UI on Dashboard",
   "requirements": [
     {
-      "id": "REQ-13",
-      "summary": "Reemplazar todas las cadenas visibles en inglés por español en navegación, encabezado/búsqueda global, páginas, diálogos, estados vacíos, alertas y toasts, manteniendo la funcionalidad existente.",
+      "id": "REQ-1",
+      "summary": "Diagnose and fix the frontend-side causes of the current build/deploy failure so the app compiles and loads without runtime errors.",
       "acceptanceCriteria": [
-        "All visible navigation labels in the sidebar are Spanish (e.g., Dashboard, Inventory, Rates, Sales, Customers, Cashbox, Suppliers, Closures).",
-        "Header search button text and the Global Search modal title, placeholder, loading/empty messages, and per-result labels are Spanish.",
-        "Inventory page headings, descriptions, buttons (e.g., Add Product), category filter labels (e.g., All Categories), low-stock alert texts, and empty states are Spanish.",
-        "Rates page headings, helper texts, form labels, buttons, and toasts (success/error) are Spanish.",
-        "Customers list page headings, form labels/placeholders, buttons, empty states, and toasts (success/error) are Spanish.",
-        "Customer detail page texts (including error state and the “backend integration required” block) are Spanish.",
-        "Placeholder pages (Sales, Cashbox, Suppliers, Closures, Dashboard) have their headings and placeholder/alert copy translated to Spanish.",
-        "No user-facing English strings remain in the UI in the modules currently present in the frontend.",
-        "All existing functionality (routing, forms, queries, mutations, toasts) continues to work after localization changes."
+        "A clean build completes without errors for both backend and frontend.",
+        "A deploy completes successfully and the app loads without runtime errors.",
+        "Any fixes are captured in code (no manual post-build steps required)."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/components/layout/AppLayout.tsx",
+          "path": "frontend/src/main.tsx",
           "operation": "modify",
-          "description": "Traducir al español las etiquetas del sidebar (Dashboard, Inventory, Rates, Sales, Customers, Cashbox, Suppliers, Closures), el texto del botón de búsqueda del header (incluyendo placeholder), y cualquier texto visible del footer que esté en inglés, manteniendo rutas y navegación intactas."
+          "description": "Resolve any build/runtime issues originating from app bootstrapping (provider composition, router mounting, QueryClient setup), ensuring the frontend compiles and loads cleanly."
         },
         {
-          "path": "frontend/src/components/search/GlobalSearch.tsx",
+          "path": "frontend/src/App.tsx",
           "operation": "modify",
-          "description": "Traducir al español el título del modal, placeholder del input, estados de carga/vacío, y etiquetas por resultado (por ejemplo 'Stock' y 'Retail'), preservando la lógica de debounce, query y navegación."
+          "description": "Fix any routing/type issues that prevent compilation (TanStack Router route tree typing/registration, imports/exports), ensuring no build-time errors."
         },
         {
-          "path": "frontend/src/pages/InventoryPage.tsx",
+          "path": "frontend/src/hooks/useActor.ts",
           "operation": "modify",
-          "description": "Traducir al español títulos, descripciones, botones (p. ej. 'Agregar producto'), filtros (p. ej. 'Todas las categorías'), alerta de bajo stock (incluyendo pluralización), encabezados de tabla, badge de bajo stock y estados vacíos; mantener filtrado/cálculos/renderizado sin cambios funcionales."
+          "description": "Fix any actor/identity initialization or dependency issues that can trigger build-time type errors or runtime crashes during deploy; ensure hooks remain compatible with current backend typings."
         },
         {
-          "path": "frontend/src/components/inventory/InventoryItemForm.tsx",
+          "path": "frontend/src/hooks/useQueries.ts",
           "operation": "modify",
-          "description": "Traducir al español el título del diálogo, labels, placeholders, botones (Cancelar/Agregar), estado 'Agregando…', y toasts de éxito/error; mantener validación y envío al backend sin cambios."
-        },
+          "description": "Correct any React Query typing/import issues that prevent compilation (query keys, enabled flags, return types), and ensure hooks are consistent with the generated backend type surface."
+        }
+      ]
+    },
+    {
+      "id": "REQ-3",
+      "summary": "Add React Query hooks and Dashboard sections to display top-selling products, most-searched products, and net profit by period with selectable presets and loading/empty states.",
+      "acceptanceCriteria": [
+        "React Query hooks are added in frontend/src/hooks/useQueries.ts for each new backend analytics method.",
+        "Dashboard page (frontend/src/pages/DashboardPage.tsx) renders sections/cards for: top-selling products, most-searched products, and net profit by period.",
+        "Dashboard supports selecting a time range/period grouping (at minimum: a few preset ranges such as last 7 days / last 30 days / this month) and updates analytics accordingly.",
+        "All new user-visible UI strings use the existing i18n helper (t(...)) and do not introduce hard-coded English/Spanish strings in components."
+      ],
+      "file_operations": [
         {
-          "path": "frontend/src/pages/RatesPage.tsx",
+          "path": "frontend/src/hooks/useQueries.ts",
           "operation": "modify",
-          "description": "Traducir al español headings, textos de ayuda, títulos de tarjetas, formulario (labels/placeholders), botón (Agregar tasa / Agregando…), badges (p. ej. 'Última'), estados vacíos y toasts (éxito/error). Ajustar el formateo de fecha visible para usar un locale en español (p. ej. es-ES) sin cambiar la fuente de datos."
-        },
-        {
-          "path": "frontend/src/pages/CustomersPage.tsx",
-          "operation": "modify",
-          "description": "Traducir al español headings, descripciones, botón principal, tabla (headers y acciones como 'Ver detalles'), estado vacío, diálogo de alta de cliente (título, labels, placeholder), estados 'Agregando…' y toasts de éxito/error; mantener navegación a detalle y mutaciones."
-        },
-        {
-          "path": "frontend/src/pages/CustomerDetailPage.tsx",
-          "operation": "modify",
-          "description": "Traducir al español el estado de error (cliente no encontrado), botón 'Atrás', tarjetas (deuda actual/ID del cliente), y el bloque de alerta 'Integración de backend requerida' (título y descripción), manteniendo la obtención por params y el renderizado."
+          "description": "Add React Query hooks for advanced analytics using existing actor access: useTopItemsSold (wraps getTopItemsSold), useTopSearchedProducts (wraps getTopSearchedProducts), and useNetProfitByInterval (wraps aggregateNetProfitByInterval). Ensure query keys include the selected limit/range/interval inputs so Dashboard selection changes trigger refetch."
         },
         {
           "path": "frontend/src/pages/DashboardPage.tsx",
           "operation": "modify",
-          "description": "Traducir al español el título/subtítulo, alerta de integración requerida y toda la copia placeholder de tarjetas (ventas totales, productos, clientes, ganancia neta) y secciones (más vendidos/más buscados), conservando la estructura del layout."
+          "description": "Render new Dashboard sections/cards for advanced analytics (top-selling products, most-searched products, net profit by period). Add preset selectors (e.g., last 7 days/last 30 days/this month) and period grouping selector (e.g., day/week/month) that drive the analytics hooks. Include sensible loading states (Skeleton) and empty/error states (Alert/placeholder text) using existing shadcn/ui components (Card, Skeleton, Alert, Badge). Verify the component's usage instructions before implementing."
         },
         {
-          "path": "frontend/src/pages/SalesPage.tsx",
+          "path": "frontend/src/lib/i18n.ts",
           "operation": "modify",
-          "description": "Traducir al español el título/subtítulo, alerta de integración requerida, y la copia del módulo (incluyendo la lista de capacidades planned), manteniendo el contenido como placeholder."
-        },
-        {
-          "path": "frontend/src/pages/CashboxPage.tsx",
-          "operation": "modify",
-          "description": "Traducir al español el título/subtítulo, alerta de integración requerida, y la copia del módulo (incluyendo lista), manteniendo el contenido como placeholder."
-        },
-        {
-          "path": "frontend/src/pages/SuppliersPage.tsx",
-          "operation": "modify",
-          "description": "Traducir al español el título/subtítulo, alerta de integración requerida, y la copia del módulo de proveedores (incluyendo lista), manteniendo el contenido como placeholder."
-        },
-        {
-          "path": "frontend/src/pages/SupplierDetailPage.tsx",
-          "operation": "modify",
-          "description": "Traducir al español el título/subtítulo ('Detalles del proveedor'), botón 'Atrás', alerta de integración requerida y la copia placeholder de información; mantener el uso de params y navegación."
-        },
-        {
-          "path": "frontend/src/pages/ClosuresPage.tsx",
-          "operation": "modify",
-          "description": "Traducir al español el título/subtítulo, alerta de integración requerida y la copia del módulo de cierres (incluyendo lista de capacidades), manteniendo el contenido como placeholder."
-        },
-        {
-          "path": "frontend/index.html",
-          "operation": "modify",
-          "description": "Ajustar el texto visible del documento (por ejemplo, el <title> si está en inglés) para que la experiencia de UI sea consistente en español, sin cambiar el arranque de la app."
+          "description": "Add new translation keys required by the advanced analytics UI (section titles, selector labels/options, empty/loading/error messages, column labels). Ensure DashboardPage uses only t(...) for any new user-visible strings (no hard-coded strings in new UI)."
         }
       ]
     }

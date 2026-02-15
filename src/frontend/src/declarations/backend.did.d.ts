@@ -11,6 +11,15 @@ import type { IDL } from '@icp-sdk/core/candid';
 import type { Principal } from '@icp-sdk/core/principal';
 
 export type Blob = Uint8Array;
+export interface CashboxEntry {
+  'id' : string,
+  'entryType' : { '_in' : null } |
+    { 'out' : null },
+  'description' : string,
+  'currency' : string,
+  'timestamp' : Time,
+  'amountUsd' : number,
+}
 export interface Customer {
   'id' : string,
   'contactInfo' : string,
@@ -32,9 +41,53 @@ export interface InventoryItem {
   'sellSpecialUsd' : number,
   'category' : string,
   'photo' : [] | [Blob],
+  'profitMarginPercent' : number,
   'costUsd' : number,
 }
+export interface NetProfitEntry {
+  'period' : string,
+  'profitMargin' : number,
+  'netProfit' : number,
+}
+export interface RecordSearchEventPayload {
+  'searchTerm' : string,
+  'timestamp' : Time,
+}
+export interface Sale {
+  'id' : string,
+  'customerName' : string,
+  'dueDate' : [] | [Time],
+  'totalAmountUsd' : number,
+  'saleTimestamp' : Time,
+  'itemsSold' : Array<InventoryItem>,
+  'isCreditSale' : boolean,
+}
 export type Time = bigint;
+export interface TopSearchedProduct {
+  'searchTerm' : string,
+  'searchCount' : bigint,
+}
+export interface TopSellingProduct {
+  'productId' : string,
+  'salesCount' : bigint,
+  'productDetails' : InventoryItem,
+}
+export interface UpdateInventoryItemPayload {
+  'stockMin' : [] | [bigint],
+  'sellRetailUsd' : [] | [number],
+  'sellWholesaleUsd' : [] | [number],
+  'description' : [] | [string],
+  'stockCurrent' : [] | [bigint],
+  'sellSpecialUsd' : [] | [number],
+  'category' : [] | [string],
+  'photo' : [] | [Blob],
+  'profitMarginPercent' : [] | [number],
+  'costUsd' : [] | [number],
+}
+export interface UserProfile { 'name' : string, 'role' : string }
+export type UserRole = { 'admin' : null } |
+  { 'user' : null } |
+  { 'guest' : null };
 export interface _CaffeineStorageCreateCertificateResult {
   'method' : string,
   'blob_hash' : string,
@@ -62,7 +115,16 @@ export interface _SERVICE {
     _CaffeineStorageRefillResult
   >,
   '_caffeineStorageUpdateGatewayPrincipals' : ActorMethod<[], undefined>,
+  '_initializeAccessControlWithSecret' : ActorMethod<[string], undefined>,
+  'addCashboxEntry' : ActorMethod<
+    [string, { '_in' : null } | { 'out' : null }, number, string, string],
+    undefined
+  >,
   'addExchangeRate' : ActorMethod<[number, number], undefined>,
+  'addProfitMarginToCost' : ActorMethod<[number, number], number>,
+  'adjustCustomerDebt' : ActorMethod<[string, number], undefined>,
+  'aggregateNetProfitByInterval' : ActorMethod<[string], Array<NetProfitEntry>>,
+  'assignCallerUserRole' : ActorMethod<[Principal, UserRole], undefined>,
   'convertPriceToCop' : ActorMethod<[number], number>,
   'convertPriceToVes' : ActorMethod<[number], number>,
   'createCustomer' : ActorMethod<[string, string, string], Customer>,
@@ -72,6 +134,7 @@ export interface _SERVICE {
       [] | [Blob],
       string,
       string,
+      number,
       bigint,
       bigint,
       number,
@@ -81,13 +144,41 @@ export interface _SERVICE {
     ],
     InventoryItem
   >,
+  'filterInventoryByCategory' : ActorMethod<[string], Array<InventoryItem>>,
+  'findOverdueDelinquentSales' : ActorMethod<[Array<Sale>], Array<Sale>>,
+  'getCallerUserProfile' : ActorMethod<[], [] | [UserProfile]>,
+  'getCallerUserRole' : ActorMethod<[], UserRole>,
+  'getCashboxTotals' : ActorMethod<
+    [],
+    { 'cop' : number, 'usd' : number, 'ves' : number }
+  >,
+  'getCurrentTimestamp' : ActorMethod<[], bigint>,
   'getCustomer' : ActorMethod<[string], Customer>,
+  'getCustomerDebts' : ActorMethod<[], Array<[string, number]>>,
+  'getDistinctCategories' : ActorMethod<[], Array<string>>,
   'getInventoryItem' : ActorMethod<[string], InventoryItem>,
   'getLatestExchangeRate' : ActorMethod<[], ExchangeRate>,
+  'getTopItemsSold' : ActorMethod<[bigint], Array<TopSellingProduct>>,
+  'getTopSearchedProducts' : ActorMethod<[bigint], Array<TopSearchedProduct>>,
+  'getUserProfile' : ActorMethod<[Principal], [] | [UserProfile]>,
+  'hasDelinquentSales' : ActorMethod<[Array<Sale>], boolean>,
+  'isCallerAdmin' : ActorMethod<[], boolean>,
+  'listCashboxEntries' : ActorMethod<[], Array<CashboxEntry>>,
   'listCustomers' : ActorMethod<[], Array<Customer>>,
+  'listDelinquentSales' : ActorMethod<[], Array<Sale>>,
   'listExchangeRates' : ActorMethod<[], Array<ExchangeRate>>,
   'listInventory' : ActorMethod<[], Array<InventoryItem>>,
+  'postSale' : ActorMethod<
+    [string, string, Array<InventoryItem>, number, boolean],
+    undefined
+  >,
+  'recordSearchEvent' : ActorMethod<[RecordSearchEventPayload], undefined>,
+  'saveCallerUserProfile' : ActorMethod<[UserProfile], undefined>,
   'searchProducts' : ActorMethod<[string], Array<InventoryItem>>,
+  'updateInventoryItem' : ActorMethod<
+    [string, UpdateInventoryItemPayload],
+    InventoryItem
+  >,
 }
 export declare const idlService: IDL.ServiceClass;
 export declare const idlInitArgs: IDL.Type[];
