@@ -1,57 +1,41 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-02-15T14:46:30.681Z",
+  "generatedAt": "2026-02-15T15:31:28.369Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
   },
   "requirements": {
-    "total": 4,
-    "implemented": 2,
+    "total": 3,
+    "implemented": 1,
     "items": [
       {
         "id": "REQ-1",
-        "summary": "Investigate and fix the current build/deploy failure so the project compiles and deploys successfully again.",
-        "status": "implemented",
-        "plannedFiles": [
-          "frontend/src/main.tsx",
-          "frontend/src/App.tsx",
-          "frontend/src/hooks/useActor.ts",
-          "frontend/src/hooks/useQueries.ts"
-        ],
-        "matchedFiles": [
-          "frontend/src/hooks/useQueries.ts"
-        ]
+        "summary": "Fix backend authorization so authenticated users can create inventory products successfully, even when access control has not been explicitly initialized with an admin secret token.",
+        "status": "unknown",
+        "plannedFiles": [],
+        "matchedFiles": []
       },
       {
         "id": "REQ-2",
-        "summary": "Implement backend aggregation methods required for advanced analytics: (1) top-selling products, (2) most-searched products, and (3) net profit grouped by time period.",
+        "summary": "Add backend-side input validation and clearer trap messages for inventory item creation so the UI can surface actionable errors (e.g., missing required fields, invalid numeric values).",
         "status": "unknown",
         "plannedFiles": [],
         "matchedFiles": []
       },
       {
         "id": "REQ-3",
-        "summary": "Update the frontend to consume and display the new advanced analytics on the Dashboard (top-selling products, most-searched products, and net profit by period), with sensible loading/empty states.",
+        "summary": "Ensure the frontend inventory create flow surfaces backend errors clearly when product creation fails, and prevents obviously invalid submissions (e.g., empty required fields or non-numeric values) before calling the backend.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/hooks/useQueries.ts",
-          "frontend/src/pages/DashboardPage.tsx",
-          "frontend/src/lib/i18n.ts"
+          "frontend/src/components/inventory/InventoryItemForm.tsx",
+          "frontend/src/hooks/useQueries.ts"
         ],
         "matchedFiles": [
-          "frontend/src/hooks/useQueries.ts",
-          "frontend/src/pages/DashboardPage.tsx",
-          "frontend/src/lib/i18n.ts"
+          "frontend/src/components/inventory/InventoryItemForm.tsx",
+          "frontend/src/hooks/useQueries.ts"
         ]
-      },
-      {
-        "id": "REQ-4",
-        "summary": "Update backend search behavior to record search events needed for “most-searched products” analytics without breaking current search results.",
-        "status": "unknown",
-        "plannedFiles": [],
-        "matchedFiles": []
       }
     ]
   },
@@ -63,10 +47,10 @@
     "frontend-implementation-plan.json",
     "frontend/src/backend.d.ts",
     "frontend/src/backend.ts",
+    "frontend/src/components/inventory/InventoryItemForm.tsx",
     "frontend/src/declarations/backend.did.d.ts",
     "frontend/src/declarations/backend.did.js",
     "frontend/src/hooks/useQueries.ts",
-    "frontend/src/lib/i18n.ts",
     "frontend/src/pages/DashboardPage.tsx",
     "project_state.json",
     "scratch/component-selection.json",

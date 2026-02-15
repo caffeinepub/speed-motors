@@ -29,6 +29,34 @@ export const UserRole = IDL.Variant({
   'user' : IDL.Null,
   'guest' : IDL.Null,
 });
+export const Time = IDL.Int;
+export const CashboxEntry = IDL.Record({
+  'id' : IDL.Text,
+  'entryType' : IDL.Variant({ '_in' : IDL.Null, 'out' : IDL.Null }),
+  'description' : IDL.Text,
+  'currency' : IDL.Text,
+  'timestamp' : Time,
+  'amountUsd' : IDL.Float64,
+});
+export const CreateClosurePayload = IDL.Record({
+  'id' : IDL.Text,
+  'closingBalanceUsd' : IDL.Float64,
+  'totalExpensesUsd' : IDL.Float64,
+  'createdBy' : IDL.Text,
+  'totalIncomeUsd' : IDL.Float64,
+  'openingBalanceUsd' : IDL.Float64,
+  'cashboxEntries' : IDL.Vec(CashboxEntry),
+});
+export const Closure = IDL.Record({
+  'id' : IDL.Text,
+  'closingBalanceUsd' : IDL.Float64,
+  'totalExpensesUsd' : IDL.Float64,
+  'createdAt' : Time,
+  'createdBy' : IDL.Text,
+  'totalIncomeUsd' : IDL.Float64,
+  'openingBalanceUsd' : IDL.Float64,
+  'cashboxEntries' : IDL.Vec(CashboxEntry),
+});
 export const Customer = IDL.Record({
   'id' : IDL.Text,
   'contactInfo' : IDL.Text,
@@ -36,6 +64,19 @@ export const Customer = IDL.Record({
   'debtUsd' : IDL.Float64,
 });
 export const Blob = IDL.Vec(IDL.Nat8);
+export const InventoryItemCreatePayload = IDL.Record({
+  'id' : IDL.Text,
+  'stockMin' : IDL.Nat,
+  'sellRetailUsd' : IDL.Float64,
+  'sellWholesaleUsd' : IDL.Float64,
+  'description' : IDL.Text,
+  'stockCurrent' : IDL.Nat,
+  'sellSpecialUsd' : IDL.Float64,
+  'category' : IDL.Text,
+  'photo' : IDL.Opt(Blob),
+  'profitMarginPercent' : IDL.Float64,
+  'costUsd' : IDL.Float64,
+});
 export const InventoryItem = IDL.Record({
   'id' : IDL.Text,
   'stockMin' : IDL.Nat,
@@ -49,7 +90,19 @@ export const InventoryItem = IDL.Record({
   'profitMarginPercent' : IDL.Float64,
   'costUsd' : IDL.Float64,
 });
-export const Time = IDL.Int;
+export const CreateSupplierPayload = IDL.Record({
+  'id' : IDL.Text,
+  'contactInfo' : IDL.Text,
+  'name' : IDL.Text,
+  'address' : IDL.Text,
+});
+export const Supplier = IDL.Record({
+  'id' : IDL.Text,
+  'contactInfo' : IDL.Text,
+  'name' : IDL.Text,
+  'createdAt' : Time,
+  'address' : IDL.Text,
+});
 export const Sale = IDL.Record({
   'id' : IDL.Text,
   'customerName' : IDL.Text,
@@ -73,14 +126,6 @@ export const TopSellingProduct = IDL.Record({
 export const TopSearchedProduct = IDL.Record({
   'searchTerm' : IDL.Text,
   'searchCount' : IDL.Nat,
-});
-export const CashboxEntry = IDL.Record({
-  'id' : IDL.Text,
-  'entryType' : IDL.Variant({ '_in' : IDL.Null, 'out' : IDL.Null }),
-  'description' : IDL.Text,
-  'currency' : IDL.Text,
-  'timestamp' : Time,
-  'amountUsd' : IDL.Float64,
 });
 export const RecordSearchEventPayload = IDL.Record({
   'searchTerm' : IDL.Text,
@@ -153,24 +198,14 @@ export const idlService = IDL.Service({
   'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
   'convertPriceToCop' : IDL.Func([IDL.Float64], [IDL.Float64], []),
   'convertPriceToVes' : IDL.Func([IDL.Float64], [IDL.Float64], []),
+  'createClosure' : IDL.Func([CreateClosurePayload], [Closure], []),
   'createCustomer' : IDL.Func([IDL.Text, IDL.Text, IDL.Text], [Customer], []),
   'createInventoryItem' : IDL.Func(
-      [
-        IDL.Text,
-        IDL.Opt(Blob),
-        IDL.Text,
-        IDL.Text,
-        IDL.Float64,
-        IDL.Nat,
-        IDL.Nat,
-        IDL.Float64,
-        IDL.Float64,
-        IDL.Float64,
-        IDL.Float64,
-      ],
+      [InventoryItemCreatePayload],
       [InventoryItem],
       [],
     ),
+  'createSupplier' : IDL.Func([CreateSupplierPayload], [Supplier], []),
   'filterInventoryByCategory' : IDL.Func(
       [IDL.Text],
       [IDL.Vec(InventoryItem)],
@@ -222,10 +257,12 @@ export const idlService = IDL.Service({
   'hasDelinquentSales' : IDL.Func([IDL.Vec(Sale)], [IDL.Bool], ['query']),
   'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
   'listCashboxEntries' : IDL.Func([], [IDL.Vec(CashboxEntry)], ['query']),
+  'listClosures' : IDL.Func([], [IDL.Vec(Closure)], ['query']),
   'listCustomers' : IDL.Func([], [IDL.Vec(Customer)], ['query']),
   'listDelinquentSales' : IDL.Func([], [IDL.Vec(Sale)], ['query']),
   'listExchangeRates' : IDL.Func([], [IDL.Vec(ExchangeRate)], ['query']),
   'listInventory' : IDL.Func([], [IDL.Vec(InventoryItem)], ['query']),
+  'listSuppliers' : IDL.Func([], [IDL.Vec(Supplier)], ['query']),
   'postSale' : IDL.Func(
       [IDL.Text, IDL.Text, IDL.Vec(InventoryItem), IDL.Float64, IDL.Bool],
       [],
@@ -265,6 +302,34 @@ export const idlFactory = ({ IDL }) => {
     'user' : IDL.Null,
     'guest' : IDL.Null,
   });
+  const Time = IDL.Int;
+  const CashboxEntry = IDL.Record({
+    'id' : IDL.Text,
+    'entryType' : IDL.Variant({ '_in' : IDL.Null, 'out' : IDL.Null }),
+    'description' : IDL.Text,
+    'currency' : IDL.Text,
+    'timestamp' : Time,
+    'amountUsd' : IDL.Float64,
+  });
+  const CreateClosurePayload = IDL.Record({
+    'id' : IDL.Text,
+    'closingBalanceUsd' : IDL.Float64,
+    'totalExpensesUsd' : IDL.Float64,
+    'createdBy' : IDL.Text,
+    'totalIncomeUsd' : IDL.Float64,
+    'openingBalanceUsd' : IDL.Float64,
+    'cashboxEntries' : IDL.Vec(CashboxEntry),
+  });
+  const Closure = IDL.Record({
+    'id' : IDL.Text,
+    'closingBalanceUsd' : IDL.Float64,
+    'totalExpensesUsd' : IDL.Float64,
+    'createdAt' : Time,
+    'createdBy' : IDL.Text,
+    'totalIncomeUsd' : IDL.Float64,
+    'openingBalanceUsd' : IDL.Float64,
+    'cashboxEntries' : IDL.Vec(CashboxEntry),
+  });
   const Customer = IDL.Record({
     'id' : IDL.Text,
     'contactInfo' : IDL.Text,
@@ -272,6 +337,19 @@ export const idlFactory = ({ IDL }) => {
     'debtUsd' : IDL.Float64,
   });
   const Blob = IDL.Vec(IDL.Nat8);
+  const InventoryItemCreatePayload = IDL.Record({
+    'id' : IDL.Text,
+    'stockMin' : IDL.Nat,
+    'sellRetailUsd' : IDL.Float64,
+    'sellWholesaleUsd' : IDL.Float64,
+    'description' : IDL.Text,
+    'stockCurrent' : IDL.Nat,
+    'sellSpecialUsd' : IDL.Float64,
+    'category' : IDL.Text,
+    'photo' : IDL.Opt(Blob),
+    'profitMarginPercent' : IDL.Float64,
+    'costUsd' : IDL.Float64,
+  });
   const InventoryItem = IDL.Record({
     'id' : IDL.Text,
     'stockMin' : IDL.Nat,
@@ -285,7 +363,19 @@ export const idlFactory = ({ IDL }) => {
     'profitMarginPercent' : IDL.Float64,
     'costUsd' : IDL.Float64,
   });
-  const Time = IDL.Int;
+  const CreateSupplierPayload = IDL.Record({
+    'id' : IDL.Text,
+    'contactInfo' : IDL.Text,
+    'name' : IDL.Text,
+    'address' : IDL.Text,
+  });
+  const Supplier = IDL.Record({
+    'id' : IDL.Text,
+    'contactInfo' : IDL.Text,
+    'name' : IDL.Text,
+    'createdAt' : Time,
+    'address' : IDL.Text,
+  });
   const Sale = IDL.Record({
     'id' : IDL.Text,
     'customerName' : IDL.Text,
@@ -309,14 +399,6 @@ export const idlFactory = ({ IDL }) => {
   const TopSearchedProduct = IDL.Record({
     'searchTerm' : IDL.Text,
     'searchCount' : IDL.Nat,
-  });
-  const CashboxEntry = IDL.Record({
-    'id' : IDL.Text,
-    'entryType' : IDL.Variant({ '_in' : IDL.Null, 'out' : IDL.Null }),
-    'description' : IDL.Text,
-    'currency' : IDL.Text,
-    'timestamp' : Time,
-    'amountUsd' : IDL.Float64,
   });
   const RecordSearchEventPayload = IDL.Record({
     'searchTerm' : IDL.Text,
@@ -389,24 +471,14 @@ export const idlFactory = ({ IDL }) => {
     'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
     'convertPriceToCop' : IDL.Func([IDL.Float64], [IDL.Float64], []),
     'convertPriceToVes' : IDL.Func([IDL.Float64], [IDL.Float64], []),
+    'createClosure' : IDL.Func([CreateClosurePayload], [Closure], []),
     'createCustomer' : IDL.Func([IDL.Text, IDL.Text, IDL.Text], [Customer], []),
     'createInventoryItem' : IDL.Func(
-        [
-          IDL.Text,
-          IDL.Opt(Blob),
-          IDL.Text,
-          IDL.Text,
-          IDL.Float64,
-          IDL.Nat,
-          IDL.Nat,
-          IDL.Float64,
-          IDL.Float64,
-          IDL.Float64,
-          IDL.Float64,
-        ],
+        [InventoryItemCreatePayload],
         [InventoryItem],
         [],
       ),
+    'createSupplier' : IDL.Func([CreateSupplierPayload], [Supplier], []),
     'filterInventoryByCategory' : IDL.Func(
         [IDL.Text],
         [IDL.Vec(InventoryItem)],
@@ -458,10 +530,12 @@ export const idlFactory = ({ IDL }) => {
     'hasDelinquentSales' : IDL.Func([IDL.Vec(Sale)], [IDL.Bool], ['query']),
     'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
     'listCashboxEntries' : IDL.Func([], [IDL.Vec(CashboxEntry)], ['query']),
+    'listClosures' : IDL.Func([], [IDL.Vec(Closure)], ['query']),
     'listCustomers' : IDL.Func([], [IDL.Vec(Customer)], ['query']),
     'listDelinquentSales' : IDL.Func([], [IDL.Vec(Sale)], ['query']),
     'listExchangeRates' : IDL.Func([], [IDL.Vec(ExchangeRate)], ['query']),
     'listInventory' : IDL.Func([], [IDL.Vec(InventoryItem)], ['query']),
+    'listSuppliers' : IDL.Func([], [IDL.Vec(Supplier)], ['query']),
     'postSale' : IDL.Func(
         [IDL.Text, IDL.Text, IDL.Vec(InventoryItem), IDL.Float64, IDL.Bool],
         [],

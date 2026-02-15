@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import LargeButton from '@/components/LargeButton';
+import { extractErrorMessage } from '@/lib/errorMessage';
 import { toast } from 'sonner';
 import { t } from '@/lib/i18n';
 
@@ -32,7 +33,8 @@ export default function RatesPage() {
       toast.success(t('rates.success'));
       setFormData({ bcvVesPerUsd: '', copPerUsd: '' });
     } catch (error) {
-      toast.error(t('rates.error'));
+      const errorMsg = extractErrorMessage(error);
+      toast.error(`${t('rates.error')}${errorMsg ? ': ' + errorMsg : ''}`);
       console.error(error);
     }
   };

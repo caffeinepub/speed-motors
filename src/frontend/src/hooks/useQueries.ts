@@ -10,7 +10,12 @@ import type {
   Variant__in_out,
   TopSellingProduct,
   TopSearchedProduct,
-  NetProfitEntry
+  NetProfitEntry,
+  Supplier,
+  CreateSupplierPayload,
+  Closure,
+  CreateClosurePayload,
+  InventoryItemCreatePayload
 } from '@/backend';
 
 // Inventory Queries
@@ -45,33 +50,9 @@ export function useCreateInventoryItem() {
   const { actor } = useActor();
 
   return useMutation({
-    mutationFn: async (data: {
-      id: string;
-      photo: Uint8Array | null;
-      description: string;
-      category: string;
-      profitMarginPercent: number;
-      stockCurrent: bigint;
-      stockMin: bigint;
-      costUsd: number;
-      sellRetailUsd: number;
-      sellWholesaleUsd: number;
-      sellSpecialUsd: number;
-    }) => {
+    mutationFn: async (payload: InventoryItemCreatePayload) => {
       if (!actor) throw new Error('Actor not available');
-      return actor.createInventoryItem(
-        data.id,
-        data.photo,
-        data.description,
-        data.category,
-        data.profitMarginPercent,
-        data.stockCurrent,
-        data.stockMin,
-        data.costUsd,
-        data.sellRetailUsd,
-        data.sellWholesaleUsd,
-        data.sellSpecialUsd
-      );
+      return actor.createInventoryItem(payload);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['inventory'] });
@@ -209,19 +190,8 @@ export function useDelinquentSales() {
   });
 }
 
-export function useOverdueDelinquentSales() {
-  const { actor, isFetching } = useActor();
-
-  return useQuery<Sale[]>({
-    queryKey: ['overdueDelinquentSales'],
-    queryFn: async () => {
-      if (!actor) return [];
-      const delinquentSales = await actor.listDelinquentSales();
-      return actor.findOverdueDelinquentSales(delinquentSales);
-    },
-    enabled: !!actor && !isFetching,
-  });
-}
+// Alias for backward compatibility
+export const useOverdueDelinquentSales = useDelinquentSales;
 
 // Sales
 export function usePostSale() {
@@ -247,13 +217,9 @@ export function usePostSale() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['inventory'] });
-      queryClient.invalidateQueries({ queryKey: ['delinquentSales'] });
-      queryClient.invalidateQueries({ queryKey: ['overdueDelinquentSales'] });
       queryClient.invalidateQueries({ queryKey: ['customers'] });
       queryClient.invalidateQueries({ queryKey: ['cashboxEntries'] });
       queryClient.invalidateQueries({ queryKey: ['cashboxTotals'] });
-      queryClient.invalidateQueries({ queryKey: ['topItemsSold'] });
-      queryClient.invalidateQueries({ queryKey: ['netProfitByInterval'] });
     },
   });
 }
@@ -313,34 +279,34 @@ export function useAddCashboxEntry() {
   });
 }
 
-// Advanced Analytics Queries
-export function useTopItemsSold(count: number = 5) {
-  const { actor, isFetching } = useActor();
-
-  return useQuery<TopSellingProduct[]>({
-    queryKey: ['topItemsSold', count],
-    queryFn: async () => {
-      if (!actor) return [];
-      return actor.getTopItemsSold(BigInt(count));
-    },
-    enabled: !!actor && !isFetching,
-  });
-}
-
-export function useTopSearchedProducts(count: number = 5) {
+// Analytics
+export function useTopSearchedProducts(count: bigint) {
   const { actor, isFetching } = useActor();
 
   return useQuery<TopSearchedProduct[]>({
-    queryKey: ['topSearchedProducts', count],
+    queryKey: ['topSearchedProducts', count.toString()],
     queryFn: async () => {
       if (!actor) return [];
-      return actor.getTopSearchedProducts(BigInt(count));
+      return actor.getTopSearchedProducts(count);
     },
     enabled: !!actor && !isFetching,
   });
 }
 
-export function useNetProfitByInterval(interval: string = 'day') {
+export function useTopItemsSold(count: bigint) {
+  const { actor, isFetching } = useActor();
+
+  return useQuery<TopSellingProduct[]>({
+    queryKey: ['topItemsSold', count.toString()],
+    queryFn: async () => {
+      if (!actor) return [];
+      return actor.getTopItemsSold(count);
+    },
+    enabled: !!actor && !isFetching,
+  });
+}
+
+export function useNetProfitByInterval(interval: string) {
   const { actor, isFetching } = useActor();
 
   return useQuery<NetProfitEntry[]>({
@@ -348,6 +314,78 @@ export function useNetProfitByInterval(interval: string = 'day') {
     queryFn: async () => {
       if (!actor) return [];
       return actor.aggregateNetProfitByInterval(interval);
+    },
+    enabled: !!actor && !isFetching,
+  });
+}
+
+// Suppliers
+export function useSuppliers() {
+  const { actor, isFetching } = useActor();
+
+  return useQuery<Supplier[]>({
+    queryKey: ['suppliers'],
+    queryFn: async () => {
+      if (!actor) return [];
+      return actor.listSuppliers();
+    },
+    enabled: !!actor && !isFetching,
+  });
+}
+
+export function useCreateSupplier() {
+  const queryClient = useQueryClient();
+  const { actor } = useActor();
+
+  return useMutation({
+    mutationFn: async (payload: CreateSupplierPayload) => {
+      if (!actor) throw new Error('Actor not available');
+      return actor.createSupplier(payload);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['suppliers'] });
+    },
+  });
+}
+
+// Closures
+export function useClosures() {
+  const { actor, isFetching } = useActor();
+
+  return useQuery<Closure[]>({
+    queryKey: ['closures'],
+    queryFn: async () => {
+      if (!actor) return [];
+      return actor.listClosures();
+    },
+    enabled: !!actor && !isFetching,
+  });
+}
+
+export function useCreateClosure() {
+  const queryClient = useQueryClient();
+  const { actor } = useActor();
+
+  return useMutation({
+    mutationFn: async (payload: CreateClosurePayload) => {
+      if (!actor) throw new Error('Actor not available');
+      return actor.createClosure(payload);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['closures'] });
+    },
+  });
+}
+
+// Categories
+export function useDistinctCategories() {
+  const { actor, isFetching } = useActor();
+
+  return useQuery<string[]>({
+    queryKey: ['distinctCategories'],
+    queryFn: async () => {
+      if (!actor) return [];
+      return actor.getDistinctCategories();
     },
     enabled: !!actor && !isFetching,
   });

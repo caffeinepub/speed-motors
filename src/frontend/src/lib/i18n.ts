@@ -236,56 +236,57 @@ const translations = {
   // Suppliers
   'suppliers.title': 'Proveedores',
   'suppliers.subtitle': 'Gestionar proveedores y stock entrante',
-  'suppliers.backend_required': 'Integración de Backend Requerida',
-  'suppliers.backend_description': 'La gestión de proveedores requiere métodos de backend para crear proveedores, registrar entradas de stock, rastrear saldos por pagar y actualizar el inventario. Estas funcionalidades estarán disponibles una vez que se extienda el backend con entidades de Proveedor y EntradaStockProveedor.',
-  'suppliers.module_title': 'Módulo de Proveedores',
-  'suppliers.module_description': 'Este módulo te permitirá:',
-  'suppliers.feature_1': 'Agregar y gestionar información de proveedores',
-  'suppliers.feature_2': 'Registrar mercancía entrante con artículos de línea',
-  'suppliers.feature_3': 'Marcar entradas como Pagadas o Por Pagar',
-  'suppliers.feature_4': 'Rastrear saldos por pagar por proveedor',
-  'suppliers.feature_5': 'Actualizar automáticamente el stock del inventario',
-  'suppliers.feature_6': 'Crear movimientos de Salida en caja para stock pagado',
+  'suppliers.add_supplier': 'Agregar Proveedor',
+  'suppliers.list_title': 'Lista de Proveedores',
+  'suppliers.no_suppliers': 'No se encontraron proveedores',
+  'suppliers.start_adding': 'Comienza agregando tu primer proveedor',
+  'suppliers.add_new': 'Agregar Nuevo Proveedor',
+  'suppliers.name': 'Nombre',
+  'suppliers.name_placeholder': 'Nombre del proveedor',
+  'suppliers.contact_info': 'Información de Contacto',
+  'suppliers.contact_placeholder': 'Teléfono, email o contacto',
+  'suppliers.address': 'Dirección',
+  'suppliers.address_placeholder': 'Dirección del proveedor (opcional)',
+  'suppliers.adding': 'Agregando...',
+  'suppliers.success': 'Proveedor agregado exitosamente',
+  'suppliers.error': 'Error al agregar proveedor',
 
   // Supplier detail
   'supplier_detail.title': 'Detalles del Proveedor',
-  'supplier_detail.backend_description': 'Los detalles del proveedor, historial de entradas de stock y seguimiento de pagos requieren métodos adicionales en el backend. Estas funcionalidades estarán disponibles una vez que se extienda el backend.',
+  'supplier_detail.not_found': 'Proveedor No Encontrado',
+  'supplier_detail.not_found_description': 'No se pudo encontrar el proveedor solicitado.',
   'supplier_detail.info_title': 'Información del Proveedor',
-  'supplier_detail.info_description': 'Los detalles del proveedor se mostrarán aquí una vez que se complete la integración del backend.',
+  'supplier_detail.created_at': 'Fecha de Creación',
 
   // Closures
   'closures.title': 'Cierres',
   'closures.subtitle': 'Resúmenes de períodos e informes',
-  'closures.backend_required': 'Integración de Backend Requerida',
-  'closures.backend_description': 'Los cierres de período requieren métodos de backend para generar y listar cierres para rangos diarios/quincenales/mensuales, incluyendo totales de ventas pagadas vs a crédito, entradas/salidas de caja, deuda pendiente de clientes y cuentas por pagar a proveedores. Estas funcionalidades estarán disponibles una vez que se extienda el backend con capacidades de generación de cierres.',
-  'closures.module_title': 'Módulo de Cierres',
-  'closures.module_description': 'Este módulo te permitirá:',
-  'closures.feature_1': 'Generar cierres para rangos de fechas seleccionados (diario/quincenal/mensual)',
-  'closures.feature_2': 'Ver cierres históricos',
-  'closures.feature_3': 'Mostrar totales de ventas pagadas vs a crédito',
-  'closures.feature_4': 'Mostrar totales de entradas/salidas de caja',
-  'closures.feature_5': 'Rastrear deuda pendiente de clientes (C/C)',
-  'closures.feature_6': 'Rastrear cuentas por pagar a proveedores (C/P)',
-  'closures.feature_7': 'Visualización en múltiples monedas (USD, VES, COP)',
+  'closures.create_closure': 'Crear Cierre',
+  'closures.current_cashbox': 'Estado Actual de Caja',
+  'closures.history': 'Historial de Cierres',
+  'closures.no_closures': 'No se encontraron cierres',
+  'closures.start_adding': 'Comienza creando tu primer cierre',
+  'closures.create_new': 'Crear Nuevo Cierre',
+  'closures.opening_balance': 'Saldo Inicial',
+  'closures.closing_balance': 'Saldo Final',
+  'closures.total_income': 'Ingresos Totales',
+  'closures.total_expenses': 'Gastos Totales',
+  'closures.net_change': 'Cambio Neto',
+  'closures.created_by': 'Creado por',
+  'closures.entries': 'Movimientos',
+  'closures.current_totals': 'Totales Actuales',
+  'closures.opening_balance_help': 'Ingrese el saldo inicial al comienzo del período',
+  'closures.creating': 'Creando...',
+  'closures.create': 'Crear',
+  'closures.success': 'Cierre creado exitosamente',
+  'closures.error': 'Error al crear cierre',
+  'closures.login_required': 'Debe iniciar sesión para crear un cierre',
 
   // Footer
   'footer.rights': 'Todos los derechos reservados.',
   'footer.built_with': 'Construido con amor usando',
 
-  // Table headers
-  'table.id': 'ID',
-  'table.description': 'Descripción',
-  'table.category': 'Categoría',
-  'table.stock': 'Stock',
-  'table.stock_min': 'Stock Mín',
-  'table.cost_usd': 'Costo (USD)',
-  'table.retail_usd': 'Detal (USD)',
-  'table.wholesale_usd': 'Mayor (USD)',
-  'table.special_usd': 'Especial (USD)',
-  'table.retail_ves': 'Detal (VES)',
-  'table.retail_cop': 'Detal (COP)',
-
-  // CSV Export headers
+  // CSV Export
   'csv.id': 'ID',
   'csv.description': 'Descripción',
   'csv.category': 'Categoría',
@@ -297,6 +298,8 @@ const translations = {
   'csv.sell_special_usd': 'Precio Especial USD',
   'csv.profit_margin': 'Margen de Ganancia %',
   'csv.has_photo': 'Tiene Foto',
+  'csv.yes': 'Sí',
+  'csv.no': 'No',
   'csv.name': 'Nombre',
   'csv.contact_info': 'Información de Contacto',
   'csv.debt_usd': 'Deuda USD',
@@ -307,26 +310,35 @@ const translations = {
   'csv.date': 'Fecha',
   'csv.bcv_ves_per_usd': 'BCV VES por USD',
   'csv.cop_per_usd': 'COP por USD',
-  'csv.yes': 'Sí',
-  'csv.no': 'No',
   'csv.in': 'Entrada',
   'csv.out': 'Salida',
+
+  // Table headers
+  'table.id': 'ID',
+  'table.description': 'Descripción',
+  'table.category': 'Categoría',
+  'table.stock': 'Stock',
+  'table.stock_min': 'Stock Mín',
+  'table.cost_usd': 'Costo USD',
+  'table.retail_usd': 'Detal USD',
+  'table.wholesale_usd': 'Mayor USD',
+  'table.special_usd': 'Especial USD',
+  'table.retail_ves': 'Detal VES',
+  'table.retail_cop': 'Detal COP',
 } as const;
 
-// Simple translation function with parameter interpolation
 export function t(key: TranslationKey, params?: Record<string, string | number>): string {
   let text: string = translations[key] || key;
-  
+
   if (params) {
     Object.entries(params).forEach(([paramKey, value]) => {
-      text = text.replace(`{{${paramKey}}}`, String(value));
+      text = text.replace(new RegExp(`{{${paramKey}}}`, 'g'), String(value));
     });
   }
-  
+
   return text;
 }
 
-// Helper for pluralization
 export function plural(count: number, singular: string, plural: string): string {
   return count === 1 ? singular : plural;
 }

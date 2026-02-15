@@ -1,26 +1,16 @@
 {
   "schemaVersion": "1.0.0",
   "projectStateVersion": 3,
-  "summary": "Project aims to be fully functional, including advanced analytics (top-selling products, most-searched products, net profit by period) which require additional backend aggregation methods.",
-  "architectural_notes": [
-    "Advanced analytics depend on new backend aggregation endpoints/queries (grouping/summing/counting over sales/search data by time period)."
-  ],
+  "summary": "New project",
+  "architectural_notes": [],
   "known_issues": [
-    "App build is failing during deployment/build process; needs investigation and fix."
+    "User cannot add products (product creation flow failing)."
   ],
   "isFixRequest": true,
   "existing_features": [
     {
-      "id": "feature-investigate-and-fix-the-current-build-deploy-failure-so-the-project-compiles-and-deploys-successfully-again",
-      "title": "Investigate and fix the current build/deploy failure so the project compiles and deploys successfully again.",
-      "reqIds": [
-        "REQ-1"
-      ],
-      "version": 1
-    },
-    {
-      "id": "feature-update-the-frontend-to-consume-and-display-the-new-advanced-analytics-on-the-dashboard-top-selling-products-most-searched-products-and-net-profit-by-period-with-sensible-loading-empty-states",
-      "title": "Update the frontend to consume and display the new advanced analytics on the Dashboard (top-selling products, most-searched products, and net profit by period), with sensible loading/empty states.",
+      "id": "feature-ensure-the-frontend-inventory-create-flow-surfaces-backend-errors-clearly-when-product-creation-fails-and-prevents-obviously-invalid-submissions-e-g-empty-required-fields-or-non-numeric-values-before-calling-the-backend",
+      "title": "Ensure the frontend inventory create flow surfaces backend errors clearly when product creation fails, and prevents obviously invalid submissions (e.g., empty required fields or non-numeric values) before calling the backend.",
       "reqIds": [
         "REQ-3"
       ],
@@ -30,28 +20,22 @@
   "new_feature_requests": [
     {
       "id": "AR-1",
-      "summary": "Implement backend aggregation methods to enable advanced analytics (top-selling products, most-searched products, net profit by period) in the dashboard.",
-      "reqIds": [],
+      "summary": "Fix backend authorization so authenticated users can create inventory products successfully, even when access control has not been explicitly initialized with an admin secret token.",
+      "reqIds": [
+        "REQ-1"
+      ],
       "status": "pending"
     },
     {
-      "id": "AR-3",
-      "summary": "Implement backend aggregation methods required for advanced analytics: (1) top-selling products, (2) most-searched products, and (3) net profit grouped by time period.",
+      "id": "AR-2",
+      "summary": "Add backend-side input validation and clearer trap messages for inventory item creation so the UI can surface actionable errors (e.g., missing required fields, invalid numeric values).",
       "reqIds": [
         "REQ-2"
       ],
       "status": "pending"
-    },
-    {
-      "id": "AR-5",
-      "summary": "Update backend search behavior to record search events needed for “most-searched products” analytics without breaking current search results.",
-      "reqIds": [
-        "REQ-4"
-      ],
-      "status": "pending"
     }
   ],
-  "projectName": "Fix failing build and implement advanced analytics aggregations (top-selling, top-searched, net profit by period)",
+  "projectName": "Fix inability to add inventory products (authorization + validation)",
   "clarification_mode": "instant",
   "clarification_rounds": 0
 }

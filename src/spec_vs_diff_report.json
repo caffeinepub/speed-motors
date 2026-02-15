@@ -1,52 +1,47 @@
 {
   "kind": "spec_vs_diff_report",
   "version": "1.0",
-  "generatedAt": "2026-02-15T14:46:30.679Z",
-  "summary": "Diff shows frontend Dashboard wiring for new analytics hooks and added i18n keys for analytics. Backend changes are truncated; while a new `SearchEvent` type and `searchEvents` store are introduced, there is no visible evidence of the required aggregation query methods, time-range filtering, or bounded per-product search counters. Dashboard analytics controls shown include limits and interval selection, but no clear preset time-range selection is evidenced.",
+  "generatedAt": "2026-02-15T15:31:28.367Z",
+  "summary": "Frontend changes add client-side validation, improved error extraction, and inventory query invalidation on successful create/update. Backend diff shows access control initialization and additional domain types, but the provided truncated summary does not include (or otherwise evidence) the specific createInventoryItem authorization fix or backend-side validation/trap-message improvements required.",
   "missing_requirements": [
     {
       "id": "REQ-1",
-      "requirement": "Investigate and fix the current build/deploy failure so the project compiles and deploys successfully again.",
-      "reason": "The diff summary does not provide evidence of build/deploy fixes (e.g., config/package changes, compilation error fixes). Only partial code changes are shown, and backend/frontend build status cannot be verified from the provided excerpts.",
+      "requirement": "Fix backend authorization so authenticated users can create inventory products successfully in a fresh deployment/state (without initializing admin secret), while still blocking anonymous callers and not granting admin-only capabilities.",
+      "reason": "The backend diff excerpt shows AccessControl state initialization and mixin inclusion, but does not show any changes to createInventoryItem authorization logic, anonymous handling, or confirmation that only inventory creation is opened to authenticated users (and admin-only methods remain restricted). The diff is truncated before relevant functions.",
       "evidence": [
-        "backend/main.mo (truncated)",
-        "frontend/src/hooks/useQueries.ts (truncated)",
-        "frontend/src/pages/DashboardPage.tsx (truncated)"
+        "backend/main.mo (truncated excerpt does not show createInventoryItem or its auth checks)"
       ]
     },
     {
       "id": "REQ-2",
-      "requirement": "Backend exposes query methods for (1) top-selling products (with configurable limit and optional time range), (2) most-searched products (with configurable limit and optional time range), and (3) net profit grouped by period for a requested time range, enforcing at least user permission.",
-      "reason": "`backend/main.mo` is truncated and does not show any of the required analytics query method definitions, parameters (limit/time range/period), ranking/grouping logic, or access-control checks for these new analytics endpoints.",
+      "requirement": "Add backend-side input validation and clearer trap messages for inventory item creation (whitespace-only description/category, invalid numeric values, invalid stock fields).",
+      "reason": "No backend code for createInventoryItem validation or specific trap/error messages is visible in the truncated backend diff summary, so implementation cannot be verified from the provided evidence.",
       "evidence": [
-        "backend/main.mo (truncated)"
-      ]
-    },
-    {
-      "id": "REQ-3",
-      "requirement": "Dashboard supports selecting a time range/period grouping (at minimum presets like last 7 days/last 30 days/this month) and updates analytics accordingly.",
-      "reason": "`DashboardPage.tsx` shows state for `topItemsCount`, `topSearchCount`, and `profitInterval` (default `'day'`) but the excerpt does not show any time-range preset selection (last 7/30 days/this month) nor passing a time-range to hooks. Hooks used in the excerpt also only take count/interval parameters, not a date range.",
-      "evidence": [
-        "frontend/src/pages/DashboardPage.tsx (truncated)"
-      ]
-    },
-    {
-      "id": "REQ-4",
-      "requirement": "Record search events in a bounded/managed way (e.g., per-product counters) while keeping search results unchanged.",
-      "reason": "Backend introduces `SearchEvent` and stores `searchEvents` as a `List`, which suggests logging each search event rather than maintaining bounded per-product counters. No evidence is shown of bounding/aggregation strategy, nor evidence that search behavior was updated to increment per-product counters.",
-      "evidence": [
-        "backend/main.mo (truncated): `public type SearchEvent`",
-        "backend/main.mo (truncated): `let searchEvents = List.empty<SearchEvent>();`"
+        "backend/main.mo (truncated excerpt does not show createInventoryItem validation/error messages)"
       ]
     }
   ],
   "hallucinated_features": [
     {
-      "description": "Storing search tracking as an unbounded list of `SearchEvent` records (searchTerm + timestamp).",
-      "reason": "The request explicitly calls for bounded/managed storage (e.g., per-product counters) rather than logging every query. The diff shows a raw `List` of events, which can grow without bound and does not match the suggested storage approach.",
+      "description": "Addition/expansion of Supplier and Cashbox Closure domain types and related payloads in the backend.",
+      "reason": "These are explicitly called out as non-goals unless required to unblock product creation; the diff shows Supplier/Closure types being present/added in backend/main.mo without clear linkage to fixing inventory creation authorization/validation.",
       "evidence": [
-        "backend/main.mo (truncated): `public type SearchEvent = { searchTerm : Text; timestamp : Time.Time; };`",
-        "backend/main.mo (truncated): `let searchEvents = List.empty<SearchEvent>();`"
+        "backend/main.mo (shows public type Supplier/CreateSupplierPayload and public type Closure/CreateClosurePayload)"
+      ]
+    },
+    {
+      "description": "Dashboard analytics/UI changes (top items sold, top searched products, net profit interval state and BigInt conversions).",
+      "reason": "Not requested by REQ-1/2/3, which focus specifically on inventory creation authorization/validation and surfacing errors in the inventory create flow.",
+      "evidence": [
+        "frontend/src/pages/DashboardPage.tsx"
+      ]
+    },
+    {
+      "description": "Broad React Query hook updates beyond inventory create flow (numerous backend operations, compatibility aliasing, query key BigInt conversions).",
+      "reason": "Only inventory create flow behavior is requested; the diff summary indicates wider hook/system changes not directly required by REQ-3.",
+      "evidence": [
+        "frontend/src/hooks/useQueries.ts",
+        "frontend-file-summaries.txt (notes broad hook corrections and alias export)"
       ]
     }
   ],
@@ -54,8 +49,8 @@
   "changed_files": [
     "backend/main.mo",
     "frontend-file-summaries.txt",
+    "frontend/src/components/inventory/InventoryItemForm.tsx",
     "frontend/src/hooks/useQueries.ts",
-    "frontend/src/lib/i18n.ts",
     "frontend/src/pages/DashboardPage.tsx",
     "project_state.json"
   ]

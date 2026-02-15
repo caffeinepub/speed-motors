@@ -27,13 +27,11 @@ export interface ExchangeRate {
     bcvVesPerUsd: number;
     date: Time;
 }
-export interface CashboxEntry {
+export interface CreateSupplierPayload {
     id: string;
-    entryType: Variant__in_out;
-    description: string;
-    currency: string;
-    timestamp: Time;
-    amountUsd: number;
+    contactInfo: string;
+    name: string;
+    address: string;
 }
 export interface Sale {
     id: string;
@@ -44,13 +42,35 @@ export interface Sale {
     itemsSold: Array<InventoryItem>;
     isCreditSale: boolean;
 }
+export interface InventoryItemCreatePayload {
+    id: string;
+    stockMin: bigint;
+    sellRetailUsd: number;
+    sellWholesaleUsd: number;
+    description: string;
+    stockCurrent: bigint;
+    sellSpecialUsd: number;
+    category: string;
+    photo?: Blob;
+    profitMarginPercent: number;
+    costUsd: number;
+}
 export interface Customer {
     id: string;
     contactInfo: string;
     name: string;
     debtUsd: number;
 }
-export type Blob = Uint8Array;
+export interface Closure {
+    id: string;
+    closingBalanceUsd: number;
+    totalExpensesUsd: number;
+    createdAt: Time;
+    createdBy: string;
+    totalIncomeUsd: number;
+    openingBalanceUsd: number;
+    cashboxEntries: Array<CashboxEntry>;
+}
 export interface InventoryItem {
     id: string;
     stockMin: bigint;
@@ -64,10 +84,19 @@ export interface InventoryItem {
     profitMarginPercent: number;
     costUsd: number;
 }
+export interface CashboxEntry {
+    id: string;
+    entryType: Variant__in_out;
+    description: string;
+    currency: string;
+    timestamp: Time;
+    amountUsd: number;
+}
 export interface RecordSearchEventPayload {
     searchTerm: string;
     timestamp: Time;
 }
+export type Blob = Uint8Array;
 export interface UpdateInventoryItemPayload {
     stockMin?: bigint;
     sellRetailUsd?: number;
@@ -79,6 +108,22 @@ export interface UpdateInventoryItemPayload {
     photo?: Blob;
     profitMarginPercent?: number;
     costUsd?: number;
+}
+export interface Supplier {
+    id: string;
+    contactInfo: string;
+    name: string;
+    createdAt: Time;
+    address: string;
+}
+export interface CreateClosurePayload {
+    id: string;
+    closingBalanceUsd: number;
+    totalExpensesUsd: number;
+    createdBy: string;
+    totalIncomeUsd: number;
+    openingBalanceUsd: number;
+    cashboxEntries: Array<CashboxEntry>;
 }
 export interface UserProfile {
     name: string;
@@ -102,8 +147,10 @@ export interface backendInterface {
     assignCallerUserRole(user: Principal, role: UserRole): Promise<void>;
     convertPriceToCop(usd: number): Promise<number>;
     convertPriceToVes(usd: number): Promise<number>;
+    createClosure(payload: CreateClosurePayload): Promise<Closure>;
     createCustomer(id: string, name: string, contactInfo: string): Promise<Customer>;
-    createInventoryItem(id: string, photo: Blob | null, description: string, category: string, profitMarginPercent: number, stockCurrent: bigint, stockMin: bigint, costUsd: number, sellRetailUsd: number, sellWholesaleUsd: number, sellSpecialUsd: number): Promise<InventoryItem>;
+    createInventoryItem(payload: InventoryItemCreatePayload): Promise<InventoryItem>;
+    createSupplier(payload: CreateSupplierPayload): Promise<Supplier>;
     filterInventoryByCategory(category: string): Promise<Array<InventoryItem>>;
     findOverdueDelinquentSales(delinquentSales: Array<Sale>): Promise<Array<Sale>>;
     getCallerUserProfile(): Promise<UserProfile | null>;
@@ -125,10 +172,12 @@ export interface backendInterface {
     hasDelinquentSales(delinquentSales: Array<Sale>): Promise<boolean>;
     isCallerAdmin(): Promise<boolean>;
     listCashboxEntries(): Promise<Array<CashboxEntry>>;
+    listClosures(): Promise<Array<Closure>>;
     listCustomers(): Promise<Array<Customer>>;
     listDelinquentSales(): Promise<Array<Sale>>;
     listExchangeRates(): Promise<Array<ExchangeRate>>;
     listInventory(): Promise<Array<InventoryItem>>;
+    listSuppliers(): Promise<Array<Supplier>>;
     postSale(id: string, customerName: string, itemsSold: Array<InventoryItem>, totalAmountUsd: number, isCreditSale: boolean): Promise<void>;
     recordSearchEvent(_payload: RecordSearchEventPayload): Promise<void>;
     saveCallerUserProfile(profile: UserProfile): Promise<void>;

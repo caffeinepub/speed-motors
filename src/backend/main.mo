@@ -1,12 +1,12 @@
 import Map "mo:core/Map";
-import Time "mo:core/Time";
-import Text "mo:core/Text";
 import List "mo:core/List";
 import Set "mo:core/Set";
-import Runtime "mo:core/Runtime";
+import Time "mo:core/Time";
 import Float "mo:core/Float";
+import Text "mo:core/Text";
 import Nat "mo:core/Nat";
 import Iter "mo:core/Iter";
+import Runtime "mo:core/Runtime";
 import Principal "mo:core/Principal";
 import Order "mo:core/Order";
 import MixinStorage "blob-storage/Mixin";
@@ -18,9 +18,9 @@ import AccessControl "authorization/access-control";
 actor {
   let accessControlState = AccessControl.initState();
   include MixinAuthorization(accessControlState);
-
   include MixinStorage();
 
+  // Blob type alias for external file references
   type Blob = Storage.ExternalBlob;
 
   // Data Types
@@ -49,6 +49,20 @@ actor {
     sellWholesaleUsd : ?Float;
     sellSpecialUsd : ?Float;
     photo : ?Blob;
+  };
+
+  type InventoryItemCreatePayload = {
+    id : Text;
+    photo : ?Blob;
+    description : Text;
+    category : Text;
+    profitMarginPercent : Float;
+    stockCurrent : Nat;
+    stockMin : Nat;
+    costUsd : Float;
+    sellRetailUsd : Float;
+    sellWholesaleUsd : Float;
+    sellSpecialUsd : Float;
   };
 
   type Sale = {
@@ -84,6 +98,44 @@ actor {
     timestamp : Time.Time;
   };
 
+  // Supplier (Proveedor)
+  public type Supplier = {
+    id : Text;
+    name : Text;
+    contactInfo : Text;
+    address : Text;
+    createdAt : Time.Time;
+  };
+
+  public type CreateSupplierPayload = {
+    id : Text;
+    name : Text;
+    contactInfo : Text;
+    address : Text;
+  };
+
+  // Cashbox Closure (Cierre)
+  public type Closure = {
+    id : Text;
+    openingBalanceUsd : Float;
+    closingBalanceUsd : Float;
+    totalIncomeUsd : Float;
+    totalExpensesUsd : Float;
+    cashboxEntries : [CashboxEntry];
+    createdAt : Time.Time;
+    createdBy : Text;
+  };
+
+  public type CreateClosurePayload = {
+    id : Text;
+    openingBalanceUsd : Float;
+    closingBalanceUsd : Float;
+    totalIncomeUsd : Float;
+    totalExpensesUsd : Float;
+    cashboxEntries : [CashboxEntry];
+    createdBy : Text;
+  };
+
   // Data Stores
   let inventoryItems = Map.empty<Text, InventoryItem>();
   let sales = Map.empty<Text, Sale>();
@@ -91,6 +143,8 @@ actor {
   let customers = Map.empty<Text, Customer>();
   let userProfiles = Map.empty<Principal, UserProfile>();
   let searchEvents = List.empty<SearchEvent>();
+  let suppliers = Map.empty<Text, Supplier>();
+  let closures = Map.empty<Text, Closure>();
 
   module InventoryItem {
     public func compare(item1 : InventoryItem, item2 : InventoryItem) : Order.Order {
@@ -126,43 +180,55 @@ actor {
     userProfiles.add(caller, profile);
   };
 
-  // Inventory Management - Admin only for modifications
-  public shared ({ caller }) func createInventoryItem(
-    id : Text,
-    photo : ?Blob,
-    description : Text,
-    category : Text,
-    profitMarginPercent : Float,
-    stockCurrent : Nat,
-    stockMin : Nat,
-    costUsd : Float,
-    sellRetailUsd : Float,
-    sellWholesaleUsd : Float,
-    sellSpecialUsd : Float,
-  ) : async InventoryItem {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
-      Runtime.trap("Unauthorized: Only admins can create inventory items");
+  // Validation function for creating inventory items
+  func validateInventoryItemCreatePayload(payload : InventoryItemCreatePayload) {
+    if (payload.id == "") { Runtime.trap("ID is required") };
+    if (payload.description == "") { Runtime.trap("Description is required") };
+    if (payload.category == "") { Runtime.trap("Category is required") };
+    if (payload.stockCurrent < 0) { Runtime.trap("StockCurrent cannot be negative") };
+    if (payload.stockMin < 0) { Runtime.trap("StockMin cannot be negative") };
+    if (payload.costUsd < 0) { Runtime.trap("CostUsd cannot be negative") };
+    if (payload.sellRetailUsd < 0) {
+      Runtime.trap("SellRetailUsd cannot be negative");
+    };
+    if (payload.sellWholesaleUsd < 0) {
+      Runtime.trap("SellWholesaleUsd cannot be negative");
+    };
+    if (payload.sellSpecialUsd < 0) {
+      Runtime.trap("SellSpecialUsd cannot be negative");
+    };
+    if (payload.profitMarginPercent < 0) {
+      Runtime.trap("ProfitMarginPercent cannot be negative");
+    };
+  };
+
+  // Inventory Management - Now allows "user" role to create/update
+  public shared ({ caller }) func createInventoryItem(payload : InventoryItemCreatePayload) : async InventoryItem {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only authenticated users can create inventory items");
     };
 
-    if (inventoryItems.containsKey(id)) {
-      Runtime.trap("Item already exists for " # id);
+    validateInventoryItemCreatePayload(payload);
+
+    if (inventoryItems.containsKey(payload.id)) {
+      Runtime.trap("Item already exists for " # payload.id);
     };
 
     let item : InventoryItem = {
-      id;
-      photo;
-      description;
-      category;
-      profitMarginPercent;
-      stockCurrent;
-      stockMin;
-      costUsd;
-      sellRetailUsd;
-      sellWholesaleUsd;
-      sellSpecialUsd;
+      id = payload.id;
+      photo = payload.photo;
+      description = payload.description;
+      category = payload.category;
+      profitMarginPercent = payload.profitMarginPercent;
+      stockCurrent = payload.stockCurrent;
+      stockMin = payload.stockMin;
+      costUsd = payload.costUsd;
+      sellRetailUsd = payload.sellRetailUsd;
+      sellWholesaleUsd = payload.sellWholesaleUsd;
+      sellSpecialUsd = payload.sellSpecialUsd;
     };
 
-    inventoryItems.add(id, item);
+    inventoryItems.add(payload.id, item);
     item;
   };
 
@@ -170,8 +236,8 @@ actor {
     id : Text,
     payload : UpdateInventoryItemPayload,
   ) : async InventoryItem {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
-      Runtime.trap("Unauthorized: Only admins can update inventory items");
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can update inventory items");
     };
 
     switch (inventoryItems.get(id)) {
@@ -246,10 +312,10 @@ actor {
     inventoryItems.values().toArray();
   };
 
-  // Exchange Rate Management - Admin only for modifications
+  // Exchange Rate Management
   public shared ({ caller }) func addExchangeRate(bcvVesPerUsd : Float, copPerUsd : Float) : async () {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
-      Runtime.trap("Unauthorized: Only admins can add exchange rates");
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can add exchange rates");
     };
 
     let rate : ExchangeRate = {
@@ -432,7 +498,7 @@ actor {
     );
   };
 
-  // New Functionality for Full Backend
+  // Cashbox Entry Type
   public type CashboxEntry = {
     id : Text;
     entryType : { #_in; #out };
@@ -444,6 +510,7 @@ actor {
 
   let cashboxEntries = Map.empty<Text, CashboxEntry>();
 
+  // Add Cashbox Entry (Admin only)
   public shared ({ caller }) func addCashboxEntry(
     id : Text,
     entryType : { #_in; #out },
@@ -451,8 +518,8 @@ actor {
     currency : Text,
     description : Text,
   ) : async () {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only users can add cashbox entries");
+    if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
+      Runtime.trap("Unauthorized: Only admins can add cashbox entries");
     };
 
     if (cashboxEntries.containsKey(id)) { Runtime.trap("Cashbox entry already exists for " # id) };
@@ -504,6 +571,7 @@ actor {
     };
   };
 
+  // Post Sale - Now allows "user" role
   public shared ({ caller }) func postSale(
     id : Text,
     customerName : Text,
@@ -511,7 +579,6 @@ actor {
     totalAmountUsd : Float,
     isCreditSale : Bool,
   ) : async () {
-    // Allow regular users to post sales (not just admins)
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can post sales");
     };
@@ -560,7 +627,6 @@ actor {
       cashboxEntries.add(cashboxEntry.id, cashboxEntry);
     } else {
       // For credit sales, update customer debt
-      // Find or create customer record
       let customerOpt = customers.values().toArray().find(func(c : Customer) : Bool { c.name == customerName });
       switch (customerOpt) {
         case (?customer) {
@@ -571,8 +637,6 @@ actor {
           customers.add(customer.id, updatedCustomer);
         };
         case (null) {
-          // Customer doesn't exist, this should be handled by creating customer first
-          // For now, we'll trap to enforce proper workflow
           Runtime.trap("Customer must be created before credit sale: " # customerName);
         };
       };
@@ -629,7 +693,7 @@ actor {
     Time.now();
   };
 
-  // Record search event
+  // Record search event - (Still stubbed, no change)
   public type RecordSearchEventPayload = {
     searchTerm : Text;
     timestamp : Time.Time;
@@ -642,6 +706,7 @@ actor {
     ();
   };
 
+  // Stubbed reporting functions (no changes)
   public type TopSearchedProduct = {
     searchTerm : Text;
     searchCount : Nat;
@@ -678,5 +743,70 @@ actor {
       Runtime.trap("Unauthorized: Only users can aggregate net profit");
     };
     [];
+  };
+
+  // SUPPLIER MANAGEMENT
+
+  public shared ({ caller }) func createSupplier(payload : CreateSupplierPayload) : async Supplier {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only authenticated users can manage suppliers");
+    };
+
+    if (suppliers.containsKey(payload.id)) {
+      Runtime.trap("Supplier already exists for " # payload.id);
+    };
+
+    let supplier : Supplier = {
+      id = payload.id;
+      name = payload.name;
+      contactInfo = payload.contactInfo;
+      address = payload.address;
+      createdAt = Time.now();
+    };
+
+    suppliers.add(payload.id, supplier);
+    supplier;
+  };
+
+  public query ({ caller }) func listSuppliers() : async [Supplier] {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only authenticated users can list suppliers");
+    };
+
+    suppliers.values().toArray();
+  };
+
+  // CLOSURE (CIERRE) MANAGEMENT
+
+  public shared ({ caller }) func createClosure(payload : CreateClosurePayload) : async Closure {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only authenticated users can create closures");
+    };
+
+    if (closures.containsKey(payload.id)) {
+      Runtime.trap("Closure already exists for " # payload.id);
+    };
+
+    let closure : Closure = {
+      id = payload.id;
+      openingBalanceUsd = payload.openingBalanceUsd;
+      closingBalanceUsd = payload.closingBalanceUsd;
+      totalIncomeUsd = payload.totalIncomeUsd;
+      totalExpensesUsd = payload.totalExpensesUsd;
+      cashboxEntries = payload.cashboxEntries;
+      createdAt = Time.now();
+      createdBy = payload.createdBy;
+    };
+
+    closures.add(payload.id, closure);
+    closure;
+  };
+
+  public query ({ caller }) func listClosures() : async [Closure] {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only authenticated users can list closures");
+    };
+
+    closures.values().toArray();
   };
 };

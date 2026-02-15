@@ -1,63 +1,26 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Fix frontend build and add advanced analytics UI on Dashboard",
+  "title": "Surface inventory create errors and block invalid submissions",
   "requirements": [
     {
-      "id": "REQ-1",
-      "summary": "Diagnose and fix the frontend-side causes of the current build/deploy failure so the app compiles and loads without runtime errors.",
-      "acceptanceCriteria": [
-        "A clean build completes without errors for both backend and frontend.",
-        "A deploy completes successfully and the app loads without runtime errors.",
-        "Any fixes are captured in code (no manual post-build steps required)."
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/main.tsx",
-          "operation": "modify",
-          "description": "Resolve any build/runtime issues originating from app bootstrapping (provider composition, router mounting, QueryClient setup), ensuring the frontend compiles and loads cleanly."
-        },
-        {
-          "path": "frontend/src/App.tsx",
-          "operation": "modify",
-          "description": "Fix any routing/type issues that prevent compilation (TanStack Router route tree typing/registration, imports/exports), ensuring no build-time errors."
-        },
-        {
-          "path": "frontend/src/hooks/useActor.ts",
-          "operation": "modify",
-          "description": "Fix any actor/identity initialization or dependency issues that can trigger build-time type errors or runtime crashes during deploy; ensure hooks remain compatible with current backend typings."
-        },
-        {
-          "path": "frontend/src/hooks/useQueries.ts",
-          "operation": "modify",
-          "description": "Correct any React Query typing/import issues that prevent compilation (query keys, enabled flags, return types), and ensure hooks are consistent with the generated backend type surface."
-        }
-      ]
-    },
-    {
       "id": "REQ-3",
-      "summary": "Add React Query hooks and Dashboard sections to display top-selling products, most-searched products, and net profit by period with selectable presets and loading/empty states.",
+      "summary": "Improve inventory item creation UX by validating inputs client-side, showing clear English backend error reasons, and ensuring the inventory list refreshes after create.",
       "acceptanceCriteria": [
-        "React Query hooks are added in frontend/src/hooks/useQueries.ts for each new backend analytics method.",
-        "Dashboard page (frontend/src/pages/DashboardPage.tsx) renders sections/cards for: top-selling products, most-searched products, and net profit by period.",
-        "Dashboard supports selecting a time range/period grouping (at minimum: a few preset ranges such as last 7 days / last 30 days / this month) and updates analytics accordingly.",
-        "All new user-visible UI strings use the existing i18n helper (t(...)) and do not introduce hard-coded English/Spanish strings in components."
+        "If product creation fails, the toast shows an English error message that includes the backend error reason (not a generic failure only).",
+        "The create button is disabled (or submission is blocked) when required numeric inputs cannot be parsed into valid numbers.",
+        "After a successful create, the inventory list refreshes and the new product appears without a manual reload."
       ],
       "file_operations": [
         {
+          "path": "frontend/src/components/inventory/InventoryItemForm.tsx",
+          "operation": "modify",
+          "description": "Add client-side validation for required text fields (ensure description/category are non-empty after trimming) and numeric fields (ensure all required numeric inputs parse to finite numbers; ensure stock fields parse to valid integers for BigInt). Block submission and/or disable the submit button when invalid. Update error toasts to be in English and include the extracted backend reason via extractErrorMessage (e.g., \"Failed to create product: <reason>\"). Keep success flow closing the dialog and relying on the inventory query invalidation to refresh the list."
+        },
+        {
           "path": "frontend/src/hooks/useQueries.ts",
           "operation": "modify",
-          "description": "Add React Query hooks for advanced analytics using existing actor access: useTopItemsSold (wraps getTopItemsSold), useTopSearchedProducts (wraps getTopSearchedProducts), and useNetProfitByInterval (wraps aggregateNetProfitByInterval). Ensure query keys include the selected limit/range/interval inputs so Dashboard selection changes trigger refetch."
-        },
-        {
-          "path": "frontend/src/pages/DashboardPage.tsx",
-          "operation": "modify",
-          "description": "Render new Dashboard sections/cards for advanced analytics (top-selling products, most-searched products, net profit by period). Add preset selectors (e.g., last 7 days/last 30 days/this month) and period grouping selector (e.g., day/week/month) that drive the analytics hooks. Include sensible loading states (Skeleton) and empty/error states (Alert/placeholder text) using existing shadcn/ui components (Card, Skeleton, Alert, Badge). Verify the component's usage instructions before implementing."
-        },
-        {
-          "path": "frontend/src/lib/i18n.ts",
-          "operation": "modify",
-          "description": "Add new translation keys required by the advanced analytics UI (section titles, selector labels/options, empty/loading/error messages, column labels). Ensure DashboardPage uses only t(...) for any new user-visible strings (no hard-coded strings in new UI)."
+          "description": "Ensure the inventory create mutation continues to invalidate the inventory query on success so InventoryPage refreshes automatically, and avoid swallowing errors so InventoryItemForm can surface the backend-provided reason."
         }
       ]
     }

@@ -28,9 +28,9 @@ export default function DashboardPage() {
   const [topSearchCount, setTopSearchCount] = useState<number>(5);
   const [profitInterval, setProfitInterval] = useState<string>('day');
 
-  // Analytics queries
-  const { data: topItemsSold = [], isLoading: topItemsLoading } = useTopItemsSold(topItemsCount);
-  const { data: topSearchedProducts = [], isLoading: topSearchLoading } = useTopSearchedProducts(topSearchCount);
+  // Analytics queries - convert number to bigint
+  const { data: topItemsSold = [], isLoading: topItemsLoading } = useTopItemsSold(BigInt(topItemsCount));
+  const { data: topSearchedProducts = [], isLoading: topSearchLoading } = useTopSearchedProducts(BigInt(topSearchCount));
   const { data: netProfitData = [], isLoading: netProfitLoading } = useNetProfitByInterval(profitInterval);
 
   const lowStockItems = inventory.filter(item => Number(item.stockCurrent) <= Number(item.stockMin));
@@ -344,9 +344,9 @@ export default function DashboardPage() {
                 const totalOverdue = customerSales.reduce((sum, sale) => sum + sale.totalAmountUsd, 0);
                 
                 return (
-                  <div key={customerName} className="flex items-center justify-between rounded-lg border p-3">
+                  <div key={String(customerName)} className="flex items-center justify-between rounded-lg border p-3">
                     <div>
-                      <p className="font-medium">{customerName}</p>
+                      <p className="font-medium">{String(customerName)}</p>
                       <p className="text-sm text-muted-foreground">
                         {customer?.contactInfo || t('dashboard.no_contact_info')}
                       </p>

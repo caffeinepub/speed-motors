@@ -1,12 +1,11 @@
 # Specification
 
 ## Summary
-**Goal:** Restore a successful build/deploy and add advanced analytics (top-selling, most-searched, and net profit by period) across backend and dashboard.
+**Goal:** Restore the ability for authenticated Internet Identity users to create inventory products by fixing backend authorization, adding backend validation with clear errors, and improving the frontend create flow to prevent invalid submits and surface backend error reasons.
 
 **Planned changes:**
-- Investigate and fix the current build/deploy failure so frontend and backend compile and deploy cleanly without manual steps.
-- Add backend aggregation/query methods for: top-selling products (with limit and optional time range), most-searched products (with limit and optional time range), and net profit grouped by requested period (day/week/month) over a selected range.
-- Update backend search flow to record bounded per-product search counters needed for “most-searched products,” without changing existing search results.
-- Add React Query hooks for the new analytics methods and update the Dashboard to display the three analytics sections with loading/empty states and basic preset range/period controls, using existing i18n helper for all UI strings.
+- Adjust backend authorization for `createInventoryItem` so logged-in users can create items in a fresh deployment even if admin access control has not been initialized, while still blocking anonymous callers and not expanding admin-only capabilities.
+- Add backend input validation for inventory item creation (required text fields and required numeric fields), returning clear, specific error messages on failure.
+- Update the frontend inventory create flow to (1) block/disable submission when required fields are empty or numeric inputs are invalid, (2) display backend-provided error reasons in the failure toast, and (3) refresh the inventory list after successful creation so the new item appears immediately.
 
-**User-visible outcome:** The app builds and deploys successfully again, and users can view advanced analytics on the Dashboard (top-selling products, most-searched products, and net profit by period) with selectable time ranges/period grouping.
+**User-visible outcome:** Logged-in users can add new inventory products successfully; if something is wrong (e.g., missing description/category or invalid numbers), they see a clear English error message, and successful creations immediately appear in the inventory list without reloading.

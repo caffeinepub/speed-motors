@@ -1,4 +1,5 @@
 import type { InventoryItem, Customer, CashboxEntry, ExchangeRate } from '@/backend';
+import { Variant__in_out } from '@/backend';
 import { t } from './i18n';
 
 export function serializeInventory(items: InventoryItem[]): any[][] {
@@ -29,7 +30,7 @@ export function serializeCustomers(customers: Customer[]): any[][] {
 export function serializeCashboxEntries(entries: CashboxEntry[]): any[][] {
   return entries.map(entry => [
     entry.id,
-    entry.entryType === '_in' ? t('csv.in') : t('csv.out'),
+    (entry.entryType as Variant__in_out) === Variant__in_out._in ? t('csv.in') : t('csv.out'),
     new Date(Number(entry.timestamp) / 1000000).toISOString(),
     entry.currency,
     entry.amountUsd,

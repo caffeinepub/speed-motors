@@ -8,6 +8,7 @@ import LargeButton from '@/components/LargeButton';
 import { generateId } from '@/lib/utils';
 import { calculatePriceWithMargin } from '@/lib/inventoryPricing';
 import { fileToBytes, bytesToImageUrl } from '@/lib/fileToBytes';
+import { extractErrorMessage } from '@/lib/errorMessage';
 import { toast } from 'sonner';
 import type { InventoryItem } from '@/backend';
 import { Upload, X } from 'lucide-react';
@@ -105,67 +106,154 @@ export default function InventoryItemForm({ open, onOpenChange, mode = 'create',
     }
   };
 
-  const removeImage = () => {
+  const handleRemoveImage = () => {
     setImageFile(null);
     setImagePreview(null);
   };
 
+  // Client-side validation
+  const validateForm = (): string | null => {
+    // Validate text fields
+    const trimmedDescription = formData.description.trim();
+    const trimmedCategory = formData.category.trim();
+
+    if (!trimmedCategory) {
+      return 'Category is required';
+    }
+
+    // Validate numeric fields
+    const profitMargin = parseFloat(formData.profitMarginPercent);
+    const costUsd = parseFloat(formData.costUsd);
+    const sellRetailUsd = parseFloat(formData.sellRetailUsd);
+    const sellWholesaleUsd = parseFloat(formData.sellWholesaleUsd);
+    const sellSpecialUsd = parseFloat(formData.sellSpecialUsd);
+
+    if (isNaN(profitMargin) || !isFinite(profitMargin) || profitMargin < 0) {
+      return 'Profit margin must be a valid non-negative number';
+    }
+
+    if (isNaN(costUsd) || !isFinite(costUsd) || costUsd < 0) {
+      return 'Cost must be a valid non-negative number';
+    }
+
+    if (isNaN(sellRetailUsd) || !isFinite(sellRetailUsd) || sellRetailUsd < 0) {
+      return 'Retail price must be a valid non-negative number';
+    }
+
+    if (isNaN(sellWholesaleUsd) || !isFinite(sellWholesaleUsd) || sellWholesaleUsd < 0) {
+      return 'Wholesale price must be a valid non-negative number';
+    }
+
+    if (isNaN(sellSpecialUsd) || !isFinite(sellSpecialUsd) || sellSpecialUsd < 0) {
+      return 'Special price must be a valid non-negative number';
+    }
+
+    // Validate stock fields (must be valid integers)
+    const stockCurrent = formData.stockCurrent.trim();
+    const stockMin = formData.stockMin.trim();
+
+    if (!stockCurrent || !/^\d+$/.test(stockCurrent)) {
+      return 'Current stock must be a valid whole number';
+    }
+
+    if (!stockMin || !/^\d+$/.test(stockMin)) {
+      return 'Minimum stock must be a valid whole number';
+    }
+
+    const stockCurrentNum = parseInt(stockCurrent, 10);
+    const stockMinNum = parseInt(stockMin, 10);
+
+    if (stockCurrentNum < 0) {
+      return 'Current stock cannot be negative';
+    }
+
+    if (stockMinNum < 0) {
+      return 'Minimum stock cannot be negative';
+    }
+
+    return null;
+  };
+
+  const isFormValid = (): boolean => {
+    return validateForm() === null;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
+    // Client-side validation
+    const validationError = validateForm();
+    if (validationError) {
+      toast.error(validationError);
+      return;
+    }
+
     try {
-      const photoBytes = await fileToBytes(imageFile);
-      
-      if (mode === 'edit' && initialItem) {
+      let photoBytes: Uint8Array | null = null;
+      if (imageFile) {
+        photoBytes = await fileToBytes(imageFile);
+      } else if (mode === 'edit' && initialItem?.photo && imagePreview) {
+        photoBytes = initialItem.photo;
+      }
+
+      if (mode === 'create') {
+        await createItem.mutateAsync({
+          id: generateId(),
+          photo: photoBytes ?? undefined,
+          description: formData.description.trim(),
+          category: formData.category.trim(),
+          profitMarginPercent: parseFloat(formData.profitMarginPercent),
+          stockCurrent: BigInt(formData.stockCurrent),
+          stockMin: BigInt(formData.stockMin),
+          costUsd: parseFloat(formData.costUsd),
+          sellRetailUsd: parseFloat(formData.sellRetailUsd),
+          sellWholesaleUsd: parseFloat(formData.sellWholesaleUsd),
+          sellSpecialUsd: parseFloat(formData.sellSpecialUsd),
+        });
+        toast.success(t('inventory_form.success_create'));
+      } else if (mode === 'edit' && initialItem) {
         await updateItem.mutateAsync({
           id: initialItem.id,
           payload: {
-            description: formData.description || undefined,
-            category: formData.category || undefined,
-            profitMarginPercent: formData.profitMarginPercent ? parseFloat(formData.profitMarginPercent) : undefined,
-            stockCurrent: formData.stockCurrent ? BigInt(formData.stockCurrent) : undefined,
-            stockMin: formData.stockMin ? BigInt(formData.stockMin) : undefined,
-            costUsd: formData.costUsd ? parseFloat(formData.costUsd) : undefined,
-            sellRetailUsd: formData.sellRetailUsd ? parseFloat(formData.sellRetailUsd) : undefined,
-            sellWholesaleUsd: formData.sellWholesaleUsd ? parseFloat(formData.sellWholesaleUsd) : undefined,
-            sellSpecialUsd: formData.sellSpecialUsd ? parseFloat(formData.sellSpecialUsd) : undefined,
-            photo: photoBytes || undefined,
+            description: formData.description.trim(),
+            category: formData.category.trim(),
+            profitMarginPercent: parseFloat(formData.profitMarginPercent),
+            stockCurrent: BigInt(formData.stockCurrent),
+            stockMin: BigInt(formData.stockMin),
+            costUsd: parseFloat(formData.costUsd),
+            sellRetailUsd: parseFloat(formData.sellRetailUsd),
+            sellWholesaleUsd: parseFloat(formData.sellWholesaleUsd),
+            sellSpecialUsd: parseFloat(formData.sellSpecialUsd),
+            photo: photoBytes !== null ? photoBytes : undefined,
           },
         });
         toast.success(t('inventory_form.success_update'));
-      } else {
-        await createItem.mutateAsync({
-          id: generateId(),
-          photo: photoBytes,
-          description: formData.description,
-          category: formData.category,
-          profitMarginPercent: parseFloat(formData.profitMarginPercent || '0'),
-          stockCurrent: BigInt(formData.stockCurrent || 0),
-          stockMin: BigInt(formData.stockMin || 0),
-          costUsd: parseFloat(formData.costUsd || '0'),
-          sellRetailUsd: parseFloat(formData.sellRetailUsd || '0'),
-          sellWholesaleUsd: parseFloat(formData.sellWholesaleUsd || '0'),
-          sellSpecialUsd: parseFloat(formData.sellSpecialUsd || '0'),
-        });
-        toast.success(t('inventory_form.success_create'));
       }
-      
+
       onOpenChange(false);
       resetForm();
     } catch (error) {
-      toast.error(mode === 'edit' ? t('inventory_form.error_update') : t('inventory_form.error_create'));
-      console.error(error);
+      const errorMsg = extractErrorMessage(error);
+      const baseMsg = mode === 'create' 
+        ? 'Failed to create product'
+        : 'Failed to update product';
+      toast.error(`${baseMsg}${errorMsg ? ': ' + errorMsg : ''}`);
+      console.error('Form submission error:', error);
     }
   };
 
+  const submitDisabled = createItem.isPending || updateItem.isPending || !isFormValid();
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-[600px]">
         <DialogHeader>
-          <DialogTitle>{mode === 'edit' ? t('inventory_form.edit_title') : t('inventory_form.create_title')}</DialogTitle>
+          <DialogTitle>
+            {mode === 'create' ? t('inventory_form.create_title') : t('inventory_form.edit_title')}
+          </DialogTitle>
         </DialogHeader>
-        
-        <form onSubmit={handleSubmit} className="space-y-6">
+
+        <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="description">{t('inventory_form.description')}</Label>
             <Textarea
@@ -178,35 +266,33 @@ export default function InventoryItemForm({ open, onOpenChange, mode = 'create',
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="photo">{t('inventory_form.photo')}</Label>
+            <Label>{t('inventory_form.photo')}</Label>
             {imagePreview ? (
-              <div className="relative inline-block">
-                <img src={imagePreview} alt="Preview" className="h-32 w-32 rounded-lg object-cover border" />
+              <div className="relative">
+                <img
+                  src={imagePreview}
+                  alt="Preview"
+                  className="h-48 w-full rounded-lg object-cover"
+                />
                 <button
                   type="button"
-                  onClick={removeImage}
-                  className="absolute -top-2 -right-2 rounded-full bg-destructive p-1 text-destructive-foreground hover:bg-destructive/90"
+                  onClick={handleRemoveImage}
+                  className="absolute right-2 top-2 rounded-full bg-destructive p-1 text-destructive-foreground hover:bg-destructive/90"
                 >
                   <X className="h-4 w-4" />
                 </button>
               </div>
             ) : (
-              <div className="flex items-center gap-2">
-                <Input
-                  id="photo"
+              <label className="flex h-32 cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/25 hover:border-muted-foreground/50">
+                <Upload className="mb-2 h-8 w-8 text-muted-foreground" />
+                <span className="text-sm text-muted-foreground">{t('inventory_form.upload_image')}</span>
+                <input
                   type="file"
                   accept="image/*"
                   onChange={handleImageChange}
                   className="hidden"
                 />
-                <Label
-                  htmlFor="photo"
-                  className="flex cursor-pointer items-center gap-2 rounded-lg border border-input bg-background px-4 py-2 text-sm hover:bg-accent"
-                >
-                  <Upload className="h-4 w-4" />
-                  {t('inventory_form.upload_image')}
-                </Label>
-              </div>
+              </label>
             )}
           </div>
 
@@ -235,13 +321,16 @@ export default function InventoryItemForm({ open, onOpenChange, mode = 'create',
                 required
               />
             </div>
+          </div>
 
+          <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="stockCurrent">{t('inventory_form.stock_current')} *</Label>
               <Input
                 id="stockCurrent"
                 type="number"
                 min="0"
+                step="1"
                 value={formData.stockCurrent}
                 onChange={(e) => setFormData({ ...formData, stockCurrent: e.target.value })}
                 required
@@ -254,26 +343,28 @@ export default function InventoryItemForm({ open, onOpenChange, mode = 'create',
                 id="stockMin"
                 type="number"
                 min="0"
+                step="1"
                 value={formData.stockMin}
                 onChange={(e) => setFormData({ ...formData, stockMin: e.target.value })}
                 required
               />
             </div>
+          </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="costUsd">{t('inventory_form.cost_usd')} *</Label>
-              <Input
-                id="costUsd"
-                type="number"
-                step="0.01"
-                min="0"
-                value={formData.costUsd}
-                onChange={(e) => handleCostOrMarginChange('costUsd', e.target.value)}
-                placeholder="0.00"
-                required
-              />
-            </div>
+          <div className="space-y-2">
+            <Label htmlFor="costUsd">{t('inventory_form.cost_usd')} *</Label>
+            <Input
+              id="costUsd"
+              type="number"
+              step="0.01"
+              min="0"
+              value={formData.costUsd}
+              onChange={(e) => handleCostOrMarginChange('costUsd', e.target.value)}
+              required
+            />
+          </div>
 
+          <div className="grid gap-4 md:grid-cols-3">
             <div className="space-y-2">
               <Label htmlFor="sellRetailUsd">{t('inventory_form.sell_retail_usd')} *</Label>
               <Input
@@ -283,7 +374,6 @@ export default function InventoryItemForm({ open, onOpenChange, mode = 'create',
                 min="0"
                 value={formData.sellRetailUsd}
                 onChange={(e) => setFormData({ ...formData, sellRetailUsd: e.target.value })}
-                placeholder="0.00"
                 required
               />
             </div>
@@ -297,7 +387,6 @@ export default function InventoryItemForm({ open, onOpenChange, mode = 'create',
                 min="0"
                 value={formData.sellWholesaleUsd}
                 onChange={(e) => setFormData({ ...formData, sellWholesaleUsd: e.target.value })}
-                placeholder="0.00"
                 required
               />
             </div>
@@ -311,20 +400,23 @@ export default function InventoryItemForm({ open, onOpenChange, mode = 'create',
                 min="0"
                 value={formData.sellSpecialUsd}
                 onChange={(e) => setFormData({ ...formData, sellSpecialUsd: e.target.value })}
-                placeholder="0.00"
                 required
               />
             </div>
           </div>
 
           <DialogFooter>
-            <LargeButton type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              {t('action.cancel')}
-            </LargeButton>
-            <LargeButton type="submit" disabled={createItem.isPending || updateItem.isPending}>
-              {createItem.isPending || updateItem.isPending 
-                ? (mode === 'edit' ? t('inventory_form.updating') : t('inventory_form.adding')) 
-                : (mode === 'edit' ? t('inventory_form.update') : t('inventory_form.add'))}
+            <LargeButton
+              type="submit"
+              disabled={submitDisabled}
+            >
+              {createItem.isPending || updateItem.isPending
+                ? mode === 'create'
+                  ? t('inventory_form.adding')
+                  : t('inventory_form.updating')
+                : mode === 'create'
+                  ? t('inventory_form.add')
+                  : t('inventory_form.update')}
             </LargeButton>
           </DialogFooter>
         </form>

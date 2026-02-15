@@ -20,6 +20,31 @@ export interface CashboxEntry {
   'timestamp' : Time,
   'amountUsd' : number,
 }
+export interface Closure {
+  'id' : string,
+  'closingBalanceUsd' : number,
+  'totalExpensesUsd' : number,
+  'createdAt' : Time,
+  'createdBy' : string,
+  'totalIncomeUsd' : number,
+  'openingBalanceUsd' : number,
+  'cashboxEntries' : Array<CashboxEntry>,
+}
+export interface CreateClosurePayload {
+  'id' : string,
+  'closingBalanceUsd' : number,
+  'totalExpensesUsd' : number,
+  'createdBy' : string,
+  'totalIncomeUsd' : number,
+  'openingBalanceUsd' : number,
+  'cashboxEntries' : Array<CashboxEntry>,
+}
+export interface CreateSupplierPayload {
+  'id' : string,
+  'contactInfo' : string,
+  'name' : string,
+  'address' : string,
+}
 export interface Customer {
   'id' : string,
   'contactInfo' : string,
@@ -32,6 +57,19 @@ export interface ExchangeRate {
   'date' : Time,
 }
 export interface InventoryItem {
+  'id' : string,
+  'stockMin' : bigint,
+  'sellRetailUsd' : number,
+  'sellWholesaleUsd' : number,
+  'description' : string,
+  'stockCurrent' : bigint,
+  'sellSpecialUsd' : number,
+  'category' : string,
+  'photo' : [] | [Blob],
+  'profitMarginPercent' : number,
+  'costUsd' : number,
+}
+export interface InventoryItemCreatePayload {
   'id' : string,
   'stockMin' : bigint,
   'sellRetailUsd' : number,
@@ -61,6 +99,13 @@ export interface Sale {
   'saleTimestamp' : Time,
   'itemsSold' : Array<InventoryItem>,
   'isCreditSale' : boolean,
+}
+export interface Supplier {
+  'id' : string,
+  'contactInfo' : string,
+  'name' : string,
+  'createdAt' : Time,
+  'address' : string,
 }
 export type Time = bigint;
 export interface TopSearchedProduct {
@@ -127,23 +172,13 @@ export interface _SERVICE {
   'assignCallerUserRole' : ActorMethod<[Principal, UserRole], undefined>,
   'convertPriceToCop' : ActorMethod<[number], number>,
   'convertPriceToVes' : ActorMethod<[number], number>,
+  'createClosure' : ActorMethod<[CreateClosurePayload], Closure>,
   'createCustomer' : ActorMethod<[string, string, string], Customer>,
   'createInventoryItem' : ActorMethod<
-    [
-      string,
-      [] | [Blob],
-      string,
-      string,
-      number,
-      bigint,
-      bigint,
-      number,
-      number,
-      number,
-      number,
-    ],
+    [InventoryItemCreatePayload],
     InventoryItem
   >,
+  'createSupplier' : ActorMethod<[CreateSupplierPayload], Supplier>,
   'filterInventoryByCategory' : ActorMethod<[string], Array<InventoryItem>>,
   'findOverdueDelinquentSales' : ActorMethod<[Array<Sale>], Array<Sale>>,
   'getCallerUserProfile' : ActorMethod<[], [] | [UserProfile]>,
@@ -164,10 +199,12 @@ export interface _SERVICE {
   'hasDelinquentSales' : ActorMethod<[Array<Sale>], boolean>,
   'isCallerAdmin' : ActorMethod<[], boolean>,
   'listCashboxEntries' : ActorMethod<[], Array<CashboxEntry>>,
+  'listClosures' : ActorMethod<[], Array<Closure>>,
   'listCustomers' : ActorMethod<[], Array<Customer>>,
   'listDelinquentSales' : ActorMethod<[], Array<Sale>>,
   'listExchangeRates' : ActorMethod<[], Array<ExchangeRate>>,
   'listInventory' : ActorMethod<[], Array<InventoryItem>>,
+  'listSuppliers' : ActorMethod<[], Array<Supplier>>,
   'postSale' : ActorMethod<
     [string, string, Array<InventoryItem>, number, boolean],
     undefined
