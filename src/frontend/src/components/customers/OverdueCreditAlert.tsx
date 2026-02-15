@@ -1,19 +1,19 @@
-import { AlertTriangle } from 'lucide-react';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
+import { AlertCircle } from 'lucide-react';
 import { t } from '@/lib/i18n';
 
 interface OverdueCreditAlertProps {
-  count?: number;
-  customerName?: string;
   variant?: 'default' | 'inline';
+  customerName?: string;
+  count?: number;
 }
 
-export default function OverdueCreditAlert({ count, customerName, variant = 'default' }: OverdueCreditAlertProps) {
+export default function OverdueCreditAlert({ variant = 'default', customerName, count }: OverdueCreditAlertProps) {
   if (variant === 'inline') {
     return (
       <Badge variant="destructive" className="gap-1">
-        <AlertTriangle className="h-3 w-3" />
+        <AlertCircle className="h-3 w-3" />
         {t('overdue.badge')}
       </Badge>
     );
@@ -21,7 +21,7 @@ export default function OverdueCreditAlert({ count, customerName, variant = 'def
 
   return (
     <Alert variant="destructive">
-      <AlertTriangle className="h-4 w-4" />
+      <AlertCircle className="h-4 w-4" />
       <AlertTitle>{t('overdue.alert_title')}</AlertTitle>
       <AlertDescription>
         {customerName ? (

@@ -1,17 +1,20 @@
 import { useState, useEffect } from 'react';
 import { useCreateInventoryItem, useUpdateInventoryItem } from '@/hooks/useQueries';
+import { useInternetIdentity } from '@/hooks/useInternetIdentity';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import LargeButton from '@/components/LargeButton';
+import { Button } from '@/components/ui/button';
 import { generateId } from '@/lib/utils';
 import { calculatePriceWithMargin } from '@/lib/inventoryPricing';
 import { fileToBytes, bytesToImageUrl } from '@/lib/fileToBytes';
 import { extractErrorMessage } from '@/lib/errorMessage';
 import { toast } from 'sonner';
 import type { InventoryItem } from '@/backend';
-import { Upload, X } from 'lucide-react';
+import { Upload, X, LogIn, AlertCircle } from 'lucide-react';
 import { t } from '@/lib/i18n';
 
 interface InventoryItemFormProps {
@@ -22,6 +25,7 @@ interface InventoryItemFormProps {
 }
 
 export default function InventoryItemForm({ open, onOpenChange, mode = 'create', initialItem }: InventoryItemFormProps) {
+  const { identity, login, loginStatus } = useInternetIdentity();
   const createItem = useCreateInventoryItem();
   const updateItem = useUpdateInventoryItem();
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -38,6 +42,9 @@ export default function InventoryItemForm({ open, onOpenChange, mode = 'create',
     sellWholesaleUsd: '',
     sellSpecialUsd: '',
   });
+
+  const isAuthenticated = !!identity && !identity.getPrincipal().isAnonymous();
+  const isLoggingIn = loginStatus === 'logging-in';
 
   useEffect(() => {
     if (mode === 'edit' && initialItem) {
@@ -111,6 +118,15 @@ export default function InventoryItemForm({ open, onOpenChange, mode = 'create',
     setImagePreview(null);
   };
 
+  const handleSignIn = async () => {
+    try {
+      await login();
+    } catch (error: any) {
+      console.error('Login error:', error);
+      toast.error(t('auth.sign_in_error'));
+    }
+  };
+
   // Client-side validation
   const validateForm = (): string | null => {
     // Validate text fields
@@ -181,6 +197,11 @@ export default function InventoryItemForm({ open, onOpenChange, mode = 'create',
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    // Check authentication first
+    if (!isAuthenticated) {
+      return;
+    }
+
     // Client-side validation
     const validationError = validateForm();
     if (validationError) {
@@ -211,6 +232,8 @@ export default function InventoryItemForm({ open, onOpenChange, mode = 'create',
           sellSpecialUsd: parseFloat(formData.sellSpecialUsd),
         });
         toast.success(t('inventory_form.success_create'));
+        onOpenChange(false);
+        resetForm();
       } else if (mode === 'edit' && initialItem) {
         await updateItem.mutateAsync({
           id: initialItem.id,
@@ -228,10 +251,9 @@ export default function InventoryItemForm({ open, onOpenChange, mode = 'create',
           },
         });
         toast.success(t('inventory_form.success_update'));
+        onOpenChange(false);
+        resetForm();
       }
-
-      onOpenChange(false);
-      resetForm();
     } catch (error) {
       const errorMsg = extractErrorMessage(error);
       const baseMsg = mode === 'create' 
@@ -242,7 +264,7 @@ export default function InventoryItemForm({ open, onOpenChange, mode = 'create',
     }
   };
 
-  const submitDisabled = createItem.isPending || updateItem.isPending || !isFormValid();
+  const submitDisabled = !isAuthenticated || createItem.isPending || updateItem.isPending || !isFormValid();
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -253,6 +275,24 @@ export default function InventoryItemForm({ open, onOpenChange, mode = 'create',
           </DialogTitle>
         </DialogHeader>
 
+        {!isAuthenticated && (
+          <Alert>
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription className="flex items-center justify-between gap-4">
+              <span>{t('auth.sign_in_to_create')}</span>
+              <Button
+                onClick={handleSignIn}
+                disabled={isLoggingIn}
+                size="sm"
+                className="gap-2"
+              >
+                <LogIn className="h-4 w-4" />
+                {isLoggingIn ? t('auth.signing_in') : t('auth.sign_in')}
+              </Button>
+            </AlertDescription>
+          </Alert>
+        )}
+
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="description">{t('inventory_form.description')}</Label>
@@ -262,6 +302,7 @@ export default function InventoryItemForm({ open, onOpenChange, mode = 'create',
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               placeholder={t('inventory_form.description_placeholder')}
               rows={2}
+              disabled={!isAuthenticated}
             />
           </div>
 
@@ -278,129 +319,128 @@ export default function InventoryItemForm({ open, onOpenChange, mode = 'create',
                   type="button"
                   onClick={handleRemoveImage}
                   className="absolute right-2 top-2 rounded-full bg-destructive p-1 text-destructive-foreground hover:bg-destructive/90"
+                  disabled={!isAuthenticated}
                 >
                   <X className="h-4 w-4" />
                 </button>
               </div>
             ) : (
-              <label className="flex h-32 cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/25 hover:border-muted-foreground/50">
+              <label className={`flex h-32 cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed transition-colors ${!isAuthenticated ? 'cursor-not-allowed opacity-50' : 'hover:border-primary'}`}>
                 <Upload className="mb-2 h-8 w-8 text-muted-foreground" />
-                <span className="text-sm text-muted-foreground">{t('inventory_form.upload_image')}</span>
+                <span className="text-sm text-muted-foreground">{t('inventory_form.upload_photo')}</span>
                 <input
                   type="file"
                   accept="image/*"
                   onChange={handleImageChange}
                   className="hidden"
+                  disabled={!isAuthenticated}
                 />
               </label>
             )}
           </div>
 
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="category">{t('inventory_form.category')} *</Label>
+              <Label htmlFor="category">{t('inventory_form.category')}</Label>
               <Input
                 id="category"
                 value={formData.category}
                 onChange={(e) => setFormData({ ...formData, category: e.target.value })}
                 placeholder={t('inventory_form.category_placeholder')}
-                required
+                disabled={!isAuthenticated}
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="profitMarginPercent">{t('inventory_form.profit_margin')} *</Label>
+              <Label htmlFor="profitMarginPercent">{t('inventory_form.profit_margin')}</Label>
               <Input
                 id="profitMarginPercent"
                 type="number"
                 step="0.01"
-                min="0"
                 value={formData.profitMarginPercent}
                 onChange={(e) => handleCostOrMarginChange('profitMarginPercent', e.target.value)}
-                placeholder={t('inventory_form.profit_margin_placeholder')}
-                required
+                placeholder="0.00"
+                disabled={!isAuthenticated}
               />
             </div>
           </div>
 
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="stockCurrent">{t('inventory_form.stock_current')} *</Label>
+              <Label htmlFor="stockCurrent">{t('inventory_form.stock_current')}</Label>
               <Input
                 id="stockCurrent"
                 type="number"
-                min="0"
-                step="1"
                 value={formData.stockCurrent}
                 onChange={(e) => setFormData({ ...formData, stockCurrent: e.target.value })}
-                required
+                placeholder="0"
+                disabled={!isAuthenticated}
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="stockMin">{t('inventory_form.stock_min')} *</Label>
+              <Label htmlFor="stockMin">{t('inventory_form.stock_min')}</Label>
               <Input
                 id="stockMin"
                 type="number"
-                min="0"
-                step="1"
                 value={formData.stockMin}
                 onChange={(e) => setFormData({ ...formData, stockMin: e.target.value })}
-                required
+                placeholder="0"
+                disabled={!isAuthenticated}
               />
             </div>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="costUsd">{t('inventory_form.cost_usd')} *</Label>
+            <Label htmlFor="costUsd">{t('inventory_form.cost_usd')}</Label>
             <Input
               id="costUsd"
               type="number"
               step="0.01"
-              min="0"
               value={formData.costUsd}
               onChange={(e) => handleCostOrMarginChange('costUsd', e.target.value)}
-              required
+              placeholder="0.00"
+              disabled={!isAuthenticated}
             />
           </div>
 
-          <div className="grid gap-4 md:grid-cols-3">
+          <div className="grid grid-cols-3 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="sellRetailUsd">{t('inventory_form.sell_retail_usd')} *</Label>
+              <Label htmlFor="sellRetailUsd">{t('inventory_form.sell_retail')}</Label>
               <Input
                 id="sellRetailUsd"
                 type="number"
                 step="0.01"
-                min="0"
                 value={formData.sellRetailUsd}
                 onChange={(e) => setFormData({ ...formData, sellRetailUsd: e.target.value })}
-                required
+                placeholder="0.00"
+                disabled={!isAuthenticated}
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="sellWholesaleUsd">{t('inventory_form.sell_wholesale_usd')} *</Label>
+              <Label htmlFor="sellWholesaleUsd">{t('inventory_form.sell_wholesale')}</Label>
               <Input
                 id="sellWholesaleUsd"
                 type="number"
                 step="0.01"
-                min="0"
                 value={formData.sellWholesaleUsd}
                 onChange={(e) => setFormData({ ...formData, sellWholesaleUsd: e.target.value })}
-                required
+                placeholder="0.00"
+                disabled={!isAuthenticated}
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="sellSpecialUsd">{t('inventory_form.sell_special_usd')} *</Label>
+              <Label htmlFor="sellSpecialUsd">{t('inventory_form.sell_special')}</Label>
               <Input
                 id="sellSpecialUsd"
                 type="number"
                 step="0.01"
-                min="0"
                 value={formData.sellSpecialUsd}
                 onChange={(e) => setFormData({ ...formData, sellSpecialUsd: e.target.value })}
-                required
+                placeholder="0.00"
+                disabled={!isAuthenticated}
               />
             </div>
           </div>
@@ -411,12 +451,10 @@ export default function InventoryItemForm({ open, onOpenChange, mode = 'create',
               disabled={submitDisabled}
             >
               {createItem.isPending || updateItem.isPending
-                ? mode === 'create'
-                  ? t('inventory_form.adding')
-                  : t('inventory_form.updating')
+                ? t('action.saving')
                 : mode === 'create'
-                  ? t('inventory_form.add')
-                  : t('inventory_form.update')}
+                ? t('action.create')
+                : t('action.save')}
             </LargeButton>
           </DialogFooter>
         </form>

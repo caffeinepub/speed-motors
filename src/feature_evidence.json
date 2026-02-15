@@ -2,11 +2,13 @@
   "kind": "feature_evidence_report",
   "features": [
     {
-      "featureId": "feature-ensure-the-frontend-inventory-create-flow-surfaces-backend-errors-clearly-when-product-creation-fails-and-prevents-obviously-invalid-submissions-e-g-empty-required-fields-or-non-numeric-values-before-calling-the-backend",
-      "featureTitle": "Ensure the frontend inventory create flow surfaces backend errors clearly when product creation fails, and prevents obviously invalid submissions (e.g., empty required fields or non-numeric values) before calling the backend.",
+      "featureId": "feature-add-a-repeatable-build-and-package-workflow-that-produces-a-single-downloadable-zip-artifact-of-the-current-application-including-both-backend-and-frontend-build-outputs-and-minimal-deployment-instructions",
+      "featureTitle": "Add a repeatable build-and-package workflow that produces a single downloadable ZIP artifact of the current application, including both backend and frontend build outputs and minimal deployment instructions.",
       "files": [
-        "frontend/src/components/inventory/InventoryItemForm.tsx",
-        "frontend/src/hooks/useQueries.ts"
+        "frontend/artifacts/.gitkeep",
+        "frontend/artifacts/DEPLOY_README.md",
+        "frontend/scripts/README.md",
+        "frontend/scripts/package-artifact.sh"
       ],
       "components": [
         "blob-storage@4.0.0",
@@ -18,7 +20,28 @@
         "authorization@4.0.0"
       ],
       "testIds": [
-        "REQ-3"
+        "REQ-1"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-add-a-lightweight-download-zip-build-artifact-entry-point-for-developers-operators-english-text-that-makes-it-easy-to-locate-and-retrieve-the-generated-zip-file-after-a-successful-build",
+      "featureTitle": "Add a lightweight \"Download ZIP\" build artifact entry-point for developers/operators (English text) that makes it easy to locate and retrieve the generated ZIP file after a successful build.",
+      "files": [
+        "frontend/src/hooks/useQueries.ts",
+        "frontend/src/pages/DashboardPage.tsx"
+      ],
+      "components": [
+        "blob-storage@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0",
+        "authorization@4.0.0"
+      ],
+      "testIds": [
+        "REQ-2"
       ],
       "confidence": "high"
     }

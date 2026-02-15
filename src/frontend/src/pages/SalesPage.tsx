@@ -14,14 +14,21 @@ import { toast } from 'sonner';
 import { useDebounce } from '@/hooks/useDebounce';
 import type { InventoryItem } from '@/backend';
 import { t } from '@/lib/i18n';
+import { SalesErrorBoundary } from '@/components/sales/SalesErrorBoundary';
+import {
+  type CartItem,
+  type PriceType,
+  addProductToCart,
+  updateCartItemQuantity,
+  updateCartItemPriceType,
+  removeCartItem,
+  calculateCartTotal,
+  getItemPrice,
+  getItemSubtotal,
+  isQuantityAvailable,
+} from '@/lib/salesCart';
 
-type CartItem = {
-  product: InventoryItem;
-  quantity: number;
-  priceType: 'retail' | 'wholesale' | 'special';
-};
-
-export default function SalesPage() {
+function SalesPageContent() {
   const { data: inventory = [] } = useInventory();
   const { data: customers = [] } = useCustomers();
   const postSale = usePostSale();
@@ -42,7 +49,7 @@ export default function SalesPage() {
 
       try {
         const results = await searchProducts.mutateAsync(query);
-        setSearchResults(results);
+        setSearchResults(results || []);
       } catch (error) {
         console.error('Search error:', error);
         setSearchResults([]);
@@ -52,66 +59,51 @@ export default function SalesPage() {
     handleSearch(debouncedSearch);
   }, [debouncedSearch, searchProducts]);
 
-  const addToCart = (product: InventoryItem) => {
-    const existingItem = cart.find(item => item.product.id === product.id);
-    
-    if (existingItem) {
-      updateQuantity(product.id, existingItem.quantity + 1);
-    } else {
-      setCart([...cart, { product, quantity: 1, priceType: 'retail' }]);
-    }
+  const handleAddToCart = (product: InventoryItem) => {
+    setCart((prevCart) => {
+      const newCart = addProductToCart(prevCart, product);
+      
+      // Check if cart actually changed (product was added/updated)
+      if (newCart.length === prevCart.length && newCart !== prevCart) {
+        // Quantity was updated
+        const item = newCart.find(i => i.product.id === product.id);
+        if (item && !isQuantityAvailable(product, item.quantity)) {
+          toast.error(t('sales.insufficient_stock', { 
+            product: product.description || product.category 
+          }));
+          return prevCart;
+        }
+      }
+      
+      return newCart;
+    });
     
     setSearchQuery('');
     setSearchResults([]);
   };
 
-  const updateQuantity = (productId: string, newQuantity: number) => {
-    const item = cart.find(i => i.product.id === productId);
-    if (!item) return;
+  const handleUpdateQuantity = (productId: string, newQuantity: number) => {
+    setCart((prevCart) => {
+      const item = prevCart.find(i => i.product.id === productId);
+      if (!item) return prevCart;
 
-    if (newQuantity > Number(item.product.stockCurrent)) {
-      toast.error(t('sales.insufficient_stock', { product: item.product.description || item.product.category }));
-      return;
-    }
+      if (newQuantity > Number(item.product.stockCurrent)) {
+        toast.error(t('sales.insufficient_stock', { 
+          product: item.product.description || item.product.category 
+        }));
+        return prevCart;
+      }
 
-    if (newQuantity <= 0) {
-      removeFromCart(productId);
-      return;
-    }
-
-    setCart(cart.map(item => 
-      item.product.id === productId 
-        ? { ...item, quantity: newQuantity }
-        : item
-    ));
+      return updateCartItemQuantity(prevCart, productId, newQuantity);
+    });
   };
 
-  const updatePriceType = (productId: string, priceType: 'retail' | 'wholesale' | 'special') => {
-    setCart(cart.map(item => 
-      item.product.id === productId 
-        ? { ...item, priceType }
-        : item
-    ));
+  const handleUpdatePriceType = (productId: string, priceType: PriceType) => {
+    setCart((prevCart) => updateCartItemPriceType(prevCart, productId, priceType));
   };
 
-  const removeFromCart = (productId: string) => {
-    setCart(cart.filter(item => item.product.id !== productId));
-  };
-
-  const getItemPrice = (item: CartItem): number => {
-    switch (item.priceType) {
-      case 'retail': return item.product.sellRetailUsd;
-      case 'wholesale': return item.product.sellWholesaleUsd;
-      case 'special': return item.product.sellSpecialUsd;
-    }
-  };
-
-  const getItemSubtotal = (item: CartItem): number => {
-    return getItemPrice(item) * item.quantity;
-  };
-
-  const getTotalAmount = (): number => {
-    return cart.reduce((sum, item) => sum + getItemSubtotal(item), 0);
+  const handleRemoveFromCart = (productId: string) => {
+    setCart((prevCart) => removeCartItem(prevCart, productId));
   };
 
   const handleCompleteSale = async () => {
@@ -127,7 +119,7 @@ export default function SalesPage() {
         id: generateId(),
         customerName: paymentMethod === 'credit' ? customerName : t('sales.cash_customer'),
         itemsSold: cart.map(item => item.product),
-        totalAmountUsd: getTotalAmount(),
+        totalAmountUsd: calculateCartTotal(cart),
         isCreditSale: paymentMethod === 'credit',
       });
 
@@ -173,7 +165,7 @@ export default function SalesPage() {
                 {searchResults.map((product) => (
                   <button
                     key={product.id}
-                    onClick={() => addToCart(product)}
+                    onClick={() => handleAddToCart(product)}
                     className="flex w-full items-center justify-between rounded-lg border p-3 text-left transition-colors hover:bg-muted"
                   >
                     <div>
@@ -216,9 +208,12 @@ export default function SalesPage() {
                       <div className="flex-1">
                         <p className="font-medium">{item.product.description || item.product.category}</p>
                         <Badge variant="outline" className="mt-1">{item.product.category}</Badge>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          Stock: {Number(item.product.stockCurrent)}
+                        </p>
                       </div>
                       <button
-                        onClick={() => removeFromCart(item.product.id)}
+                        onClick={() => handleRemoveFromCart(item.product.id)}
                         className="text-muted-foreground hover:text-destructive"
                       >
                         <X className="h-4 w-4" />
@@ -229,14 +224,14 @@ export default function SalesPage() {
                       <Label className="text-xs">{t('sales.quantity')}:</Label>
                       <div className="flex items-center gap-1">
                         <button
-                          onClick={() => updateQuantity(item.product.id, item.quantity - 1)}
+                          onClick={() => handleUpdateQuantity(item.product.id, item.quantity - 1)}
                           className="rounded border p-1 hover:bg-muted"
                         >
                           <Minus className="h-3 w-3" />
                         </button>
                         <span className="w-8 text-center text-sm font-medium">{item.quantity}</span>
                         <button
-                          onClick={() => updateQuantity(item.product.id, item.quantity + 1)}
+                          onClick={() => handleUpdateQuantity(item.product.id, item.quantity + 1)}
                           className="rounded border p-1 hover:bg-muted"
                         >
                           <Plus className="h-3 w-3" />
@@ -248,7 +243,7 @@ export default function SalesPage() {
                       <Label className="text-xs">{t('sales.price_type')}:</Label>
                       <Select
                         value={item.priceType}
-                        onValueChange={(value) => updatePriceType(item.product.id, value as 'retail' | 'wholesale' | 'special')}
+                        onValueChange={(value) => handleUpdatePriceType(item.product.id, value as PriceType)}
                       >
                         <SelectTrigger className="h-8">
                           <SelectValue />
@@ -273,7 +268,7 @@ export default function SalesPage() {
                 <div className="space-y-4">
                   <div className="flex justify-between text-lg font-bold">
                     <span>{t('sales.total')}:</span>
-                    <span>{formatUSD(getTotalAmount())}</span>
+                    <span>{formatUSD(calculateCartTotal(cart))}</span>
                   </div>
 
                   <div className="space-y-2">
@@ -330,5 +325,13 @@ export default function SalesPage() {
         </Card>
       </div>
     </div>
+  );
+}
+
+export default function SalesPage() {
+  return (
+    <SalesErrorBoundary>
+      <SalesPageContent />
+    </SalesErrorBoundary>
   );
 }

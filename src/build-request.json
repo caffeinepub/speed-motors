@@ -1,84 +1,63 @@
 {
   "kind": "build_request",
-  "title": "Fix inability to add inventory products (authorization + validation)",
-  "priority": "high",
+  "title": "Generate a downloadable ZIP build artifact for the deployed application",
+  "priority": "normal",
   "requirements": [
     {
       "id": "REQ-1",
-      "text": "Fix backend authorization so authenticated users can create inventory products successfully, even when access control has not been explicitly initialized with an admin secret token.",
-      "target": "backend",
+      "text": "Add a repeatable build-and-package workflow that produces a single downloadable ZIP artifact of the current application, including both backend and frontend build outputs and minimal deployment instructions.",
+      "target": "both",
       "source": {
         "messageIds": [
-          "msg-1"
+          "msg-1",
+          "msg-2",
+          "msg-3",
+          "msg-7"
         ],
         "quotes": [
-          "REVISA LA PROGRAMACION, NO ME DEJA AGREGAR PRODUCTOS"
+          "Everything is built and deployed — would you like me to prepare the downloadable ZIP for you now?",
+          "SI POR FAVOR"
         ]
       },
       "acceptanceCriteria": [
-        "When a user is logged in with Internet Identity, calling createInventoryItem no longer traps with an authorization error in a fresh deployment/state.",
-        "Anonymous callers (not logged in) are still blocked from creating inventory items (must fail with a clear error).",
-        "The change does not grant admin-only capabilities (e.g., createCustomer, addCashboxEntry) to non-admin users."
+        "Running the packaging workflow outputs exactly one ZIP file (e.g., in a dedicated /dist or /artifacts folder) without manual steps beyond invoking the workflow.",
+        "The ZIP contains backend build outputs needed to deploy the canister(s) (e.g., wasm + candid/interface files as produced by the normal build).",
+        "The ZIP contains the frontend production build output (static assets) as produced by the normal frontend build.",
+        "The ZIP includes a short README (English) with steps to deploy locally using dfx, including any environment/setup prerequisites.",
+        "If packaging fails, the workflow prints a clear, actionable error message identifying the failed step (backend build, frontend build, or zipping)."
       ]
     },
     {
       "id": "REQ-2",
-      "text": "Add backend-side input validation and clearer trap messages for inventory item creation so the UI can surface actionable errors (e.g., missing required fields, invalid numeric values).",
-      "target": "backend",
+      "text": "Add a lightweight \"Download ZIP\" build artifact entry-point for developers/operators (English text) that makes it easy to locate and retrieve the generated ZIP file after a successful build.",
+      "target": "unknown",
       "source": {
         "messageIds": [
-          "msg-1"
+          "msg-1",
+          "msg-2",
+          "msg-7"
         ],
         "quotes": [
-          "REVISA LA PROGRAMACION, NO ME DEJA AGREGAR PRODUCTOS"
+          "would you like me to prepare the downloadable ZIP for you now?",
+          "SI POR FAVOR"
         ]
       },
       "acceptanceCriteria": [
-        "If description/category are empty (or contain only whitespace), createInventoryItem fails with a clear, specific error message.",
-        "If any required numeric field is NaN/invalid (profitMarginPercent, costUsd, sell*Usd), createInventoryItem fails with a clear, specific error message.",
-        "If stockCurrent/stockMin are invalid, createInventoryItem fails with a clear, specific error message."
-      ]
-    },
-    {
-      "id": "REQ-3",
-      "text": "Ensure the frontend inventory create flow surfaces backend errors clearly when product creation fails, and prevents obviously invalid submissions (e.g., empty required fields or non-numeric values) before calling the backend.",
-      "target": "frontend",
-      "source": {
-        "messageIds": [
-          "msg-1"
-        ],
-        "quotes": [
-          "REVISA LA PROGRAMACION, NO ME DEJA AGREGAR PRODUCTOS"
-        ]
-      },
-      "acceptanceCriteria": [
-        "If product creation fails, the toast shows an English error message that includes the backend error reason (not a generic failure only).",
-        "The create button is disabled (or submission is blocked) when required numeric inputs cannot be parsed into valid numbers.",
-        "After a successful create, the inventory list refreshes and the new product appears without a manual reload."
+        "After a successful build/package run, the location and filename of the generated ZIP are printed clearly to the console/log output.",
+        "There is a single documented command (in English) to generate the ZIP from a clean checkout, suitable for re-trying if a prior attempt failed."
       ]
     }
   ],
   "constraints": [
-    "Backend must remain a single Motoko actor in backend/main.mo (no additional backend services).",
-    "Do not edit frontend immutable paths: frontend/src/hooks/useInternetIdentity.ts, frontend/src/hooks/useInternetIdentity.tsx, frontend/src/hooks/useActor.ts, frontend/src/main.tsx, frontend/src/components/ui."
+    "Backend must remain a single Motoko actor in backend/main.mo; only add backend/migration.mo if state schema changes require it.",
+    "Do not edit files under frontend/src/components/ui, frontend/src/main.tsx, frontend/src/hooks/useInternetIdentity.ts(x), or frontend/src/hooks/useActor.ts."
   ],
   "nonGoals": [
-    "Implementing new modules unrelated to product creation (e.g., taxes, suppliers, closures) unless required to unblock product creation.",
-    "Adding third-party authentication or any non–Internet Identity auth mechanism.",
-    "Introducing external databases or non-Motoko backend components."
+    "Do not add new product features to the ERP (inventory/sales/customers/etc.) beyond enabling ZIP artifact generation.",
+    "Do not introduce external databases, cloud build services, or third-party authentication providers."
   ],
   "imageRequirements": {
     "required": [],
     "edits": []
-  },
-  "userProfileUpdate": {
-    "goalsToAdd": [],
-    "goalsToRemove": [],
-    "preferencesToAdd": [],
-    "preferencesToRemove": [],
-    "miscToAdd": [],
-    "miscToRemove": [],
-    "fieldsToSet": {},
-    "fieldsToDelete": []
   }
 }

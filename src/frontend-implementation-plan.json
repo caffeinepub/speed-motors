@@ -1,26 +1,58 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Surface inventory create errors and block invalid submissions",
+  "title": "Frontend-local build artifact (ZIP) packaging workflow and discovery UI",
   "requirements": [
     {
-      "id": "REQ-3",
-      "summary": "Improve inventory item creation UX by validating inputs client-side, showing clear English backend error reasons, and ensuring the inventory list refreshes after create.",
+      "id": "REQ-1",
+      "summary": "Provide a repeatable local workflow (invoked from the frontend workspace) that builds backend + frontend outputs and packages them into a single ZIP containing build outputs and a short deployment README.",
       "acceptanceCriteria": [
-        "If product creation fails, the toast shows an English error message that includes the backend error reason (not a generic failure only).",
-        "The create button is disabled (or submission is blocked) when required numeric inputs cannot be parsed into valid numbers.",
-        "After a successful create, the inventory list refreshes and the new product appears without a manual reload."
+        "Running the packaging workflow outputs exactly one ZIP file (e.g., in a dedicated /dist or /artifacts folder) without manual steps beyond invoking the workflow.",
+        "The ZIP contains backend build outputs needed to deploy the canister(s) (e.g., wasm + candid/interface files as produced by the normal build).",
+        "The ZIP contains the frontend production build output (static assets) as produced by the normal frontend build.",
+        "The ZIP includes a short README (English) with steps to deploy locally using dfx, including any environment/setup prerequisites.",
+        "If packaging fails, the workflow prints a clear, actionable error message identifying the failed step (backend build, frontend build, or zipping)."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/components/inventory/InventoryItemForm.tsx",
-          "operation": "modify",
-          "description": "Add client-side validation for required text fields (ensure description/category are non-empty after trimming) and numeric fields (ensure all required numeric inputs parse to finite numbers; ensure stock fields parse to valid integers for BigInt). Block submission and/or disable the submit button when invalid. Update error toasts to be in English and include the extracted backend reason via extractErrorMessage (e.g., \"Failed to create product: <reason>\"). Keep success flow closing the dialog and relying on the inventory query invalidation to refresh the list."
+          "path": "frontend/scripts/package-artifact.sh",
+          "operation": "create",
+          "description": "Create a deterministic, repeatable packaging script (single command) that (1) runs the normal backend build from repo root, (2) runs the normal frontend production build, (3) assembles only required build outputs plus deployment README into a staging folder, and (4) produces exactly one ZIP at a fixed location (e.g., frontend/artifacts/app-build.zip). Ensure clear, actionable console errors for each step (backend build, frontend build, zipping) and a clear success message printing the final ZIP path + filename."
         },
+        {
+          "path": "frontend/artifacts/DEPLOY_README.md",
+          "operation": "create",
+          "description": "Add a short English README to be included in the ZIP describing prerequisites and local deployment steps using dfx (from a clean checkout), including how to use the packaged backend outputs and how to serve/deploy the packaged frontend static build."
+        },
+        {
+          "path": "frontend/artifacts/.gitkeep",
+          "operation": "create",
+          "description": "Ensure the artifacts folder exists in source control without committing generated ZIP outputs."
+        },
+        {
+          "path": "frontend/scripts/README.md",
+          "operation": "create",
+          "description": "Document the packaging workflow in English, including the single command to run (frontend/scripts/package-artifact.sh) and the expected output ZIP location/filename. This documentation must align with the script's printed messages."
+        }
+      ]
+    },
+    {
+      "id": "REQ-2",
+      "summary": "Add a lightweight in-app developer/operator entry-point that clearly tells where to find the generated ZIP and (optionally) fetches build artifact info from the backend for easy retrieval.",
+      "acceptanceCriteria": [
+        "After a successful build/package run, the location and filename of the generated ZIP are printed clearly to the console/log output.",
+        "There is a single documented command (in English) to generate the ZIP from a clean checkout, suitable for re-trying if a prior attempt failed."
+      ],
+      "file_operations": [
         {
           "path": "frontend/src/hooks/useQueries.ts",
           "operation": "modify",
-          "description": "Ensure the inventory create mutation continues to invalidate the inventory query on success so InventoryPage refreshes automatically, and avoid swallowing errors so InventoryItemForm can surface the backend-provided reason."
+          "description": "Add a React Query hook (e.g., useBuildArtifactsInfo) that calls the existing backend capability getBuildArtifacts() and returns the resulting string for display in the UI (no backend changes)."
+        },
+        {
+          "path": "frontend/src/pages/DashboardPage.tsx",
+          "operation": "modify",
+          "description": "Add a small 'Download ZIP (Developers/Operators)' card/section (English text) explaining the single command to generate the ZIP and the expected output path/filename. Include a button to fetch and display backend-reported artifact info (via the new hook) when available. Use existing shadcn-ui components (e.g., Card, Button, Alert/Dialog) to keep UI consistent—verify the component's usage instructions before implementing."
         }
       ]
     }

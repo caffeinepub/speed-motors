@@ -1,11 +1,14 @@
 # Specification
 
 ## Summary
-**Goal:** Restore the ability for authenticated Internet Identity users to create inventory products by fixing backend authorization, adding backend validation with clear errors, and improving the frontend create flow to prevent invalid submits and surface backend error reasons.
+**Goal:** Provide a repeatable workflow to build and package the current application into a single downloadable ZIP artifact (backend + frontend) with minimal deployment instructions.
 
 **Planned changes:**
-- Adjust backend authorization for `createInventoryItem` so logged-in users can create items in a fresh deployment even if admin access control has not been initialized, while still blocking anonymous callers and not expanding admin-only capabilities.
-- Add backend input validation for inventory item creation (required text fields and required numeric fields), returning clear, specific error messages on failure.
-- Update the frontend inventory create flow to (1) block/disable submission when required fields are empty or numeric inputs are invalid, (2) display backend-provided error reasons in the failure toast, and (3) refresh the inventory list after successful creation so the new item appears immediately.
+- Add a single command/workflow that runs backend build, frontend production build, and packages outputs into exactly one ZIP in a dedicated artifacts/dist folder.
+- Include backend deploy outputs in the ZIP (e.g., wasm + candid/interface files produced by the normal build).
+- Include frontend production build output (static assets) in the ZIP.
+- Generate a short English README inside the ZIP with prerequisites and steps to deploy locally using `dfx`.
+- Ensure packaging failures emit clear, actionable console messages indicating which step failed (backend build, frontend build, or zipping).
+- Add a lightweight “Download ZIP” entry-point for developers/operators by clearly printing the ZIP filename and path after a successful run, and documenting the single command to re-run from a clean checkout.
 
-**User-visible outcome:** Logged-in users can add new inventory products successfully; if something is wrong (e.g., missing description/category or invalid numbers), they see a clear English error message, and successful creations immediately appear in the inventory list without reloading.
+**User-visible outcome:** Developers/operators can run one documented command to produce a single ZIP artifact and easily find its printed location, then use the included README to deploy locally with `dfx`.

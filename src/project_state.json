@@ -4,15 +4,23 @@
   "summary": "New project",
   "architectural_notes": [],
   "known_issues": [
-    "User cannot add products (product creation flow failing)."
+    "Automated build/ZIP generation failed during the last attempt; may need retry or simplification."
   ],
-  "isFixRequest": true,
+  "isFixRequest": false,
   "existing_features": [
     {
-      "id": "feature-ensure-the-frontend-inventory-create-flow-surfaces-backend-errors-clearly-when-product-creation-fails-and-prevents-obviously-invalid-submissions-e-g-empty-required-fields-or-non-numeric-values-before-calling-the-backend",
-      "title": "Ensure the frontend inventory create flow surfaces backend errors clearly when product creation fails, and prevents obviously invalid submissions (e.g., empty required fields or non-numeric values) before calling the backend.",
+      "id": "feature-add-a-repeatable-build-and-package-workflow-that-produces-a-single-downloadable-zip-artifact-of-the-current-application-including-both-backend-and-frontend-build-outputs-and-minimal-deployment-instructions",
+      "title": "Add a repeatable build-and-package workflow that produces a single downloadable ZIP artifact of the current application, including both backend and frontend build outputs and minimal deployment instructions.",
       "reqIds": [
-        "REQ-3"
+        "REQ-1"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-add-a-lightweight-download-zip-build-artifact-entry-point-for-developers-operators-english-text-that-makes-it-easy-to-locate-and-retrieve-the-generated-zip-file-after-a-successful-build",
+      "title": "Add a lightweight \"Download ZIP\" build artifact entry-point for developers/operators (English text) that makes it easy to locate and retrieve the generated ZIP file after a successful build.",
+      "reqIds": [
+        "REQ-2"
       ],
       "version": 1
     }
@@ -20,22 +28,12 @@
   "new_feature_requests": [
     {
       "id": "AR-1",
-      "summary": "Fix backend authorization so authenticated users can create inventory products successfully, even when access control has not been explicitly initialized with an admin secret token.",
-      "reqIds": [
-        "REQ-1"
-      ],
-      "status": "pending"
-    },
-    {
-      "id": "AR-2",
-      "summary": "Add backend-side input validation and clearer trap messages for inventory item creation so the UI can surface actionable errors (e.g., missing required fields, invalid numeric values).",
-      "reqIds": [
-        "REQ-2"
-      ],
-      "status": "pending"
+      "summary": "Prepare a downloadable ZIP build artifact for the deployed application",
+      "reqIds": [],
+      "status": "in_progress"
     }
   ],
-  "projectName": "Fix inability to add inventory products (authorization + validation)",
+  "projectName": "Generate a downloadable ZIP build artifact for the deployed application",
   "clarification_mode": "instant",
   "clarification_rounds": 0
 }

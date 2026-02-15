@@ -1,6 +1,6 @@
 import { useParams, useNavigate } from '@tanstack/react-router';
 import { ArrowLeft, AlertCircle } from 'lucide-react';
-import { useCustomer, useOverdueDelinquentSales } from '@/hooks/useQueries';
+import { useCustomer, useDelinquentSales } from '@/hooks/useQueries';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -13,7 +13,7 @@ export default function CustomerDetailPage() {
   const { customerId } = useParams({ from: '/customers/$customerId' });
   const navigate = useNavigate();
   const { data: customer, isLoading } = useCustomer(customerId);
-  const { data: overdueSales = [] } = useOverdueDelinquentSales();
+  const { data: overdueSales = [] } = useDelinquentSales();
 
   const customerOverdueSales = customer 
     ? overdueSales.filter(sale => sale.customerName === customer.name)

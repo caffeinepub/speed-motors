@@ -181,6 +181,7 @@ export interface _SERVICE {
   'createSupplier' : ActorMethod<[CreateSupplierPayload], Supplier>,
   'filterInventoryByCategory' : ActorMethod<[string], Array<InventoryItem>>,
   'findOverdueDelinquentSales' : ActorMethod<[Array<Sale>], Array<Sale>>,
+  'getBuildArtifacts' : ActorMethod<[], string>,
   'getCallerUserProfile' : ActorMethod<[], [] | [UserProfile]>,
   'getCallerUserRole' : ActorMethod<[], UserRole>,
   'getCashboxTotals' : ActorMethod<
@@ -195,7 +196,6 @@ export interface _SERVICE {
   'getLatestExchangeRate' : ActorMethod<[], ExchangeRate>,
   'getTopItemsSold' : ActorMethod<[bigint], Array<TopSellingProduct>>,
   'getTopSearchedProducts' : ActorMethod<[bigint], Array<TopSearchedProduct>>,
-  'getUserProfile' : ActorMethod<[Principal], [] | [UserProfile]>,
   'hasDelinquentSales' : ActorMethod<[Array<Sale>], boolean>,
   'isCallerAdmin' : ActorMethod<[], boolean>,
   'listCashboxEntries' : ActorMethod<[], Array<CashboxEntry>>,
@@ -210,6 +210,7 @@ export interface _SERVICE {
     undefined
   >,
   'recordSearchEvent' : ActorMethod<[RecordSearchEventPayload], undefined>,
+  'registerUserRole' : ActorMethod<[string, string], string>,
   'saveCallerUserProfile' : ActorMethod<[UserProfile], undefined>,
   'searchProducts' : ActorMethod<[string], Array<InventoryItem>>,
   'updateInventoryItem' : ActorMethod<

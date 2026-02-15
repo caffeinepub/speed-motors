@@ -153,6 +153,7 @@ export interface backendInterface {
     createSupplier(payload: CreateSupplierPayload): Promise<Supplier>;
     filterInventoryByCategory(category: string): Promise<Array<InventoryItem>>;
     findOverdueDelinquentSales(delinquentSales: Array<Sale>): Promise<Array<Sale>>;
+    getBuildArtifacts(): Promise<string>;
     getCallerUserProfile(): Promise<UserProfile | null>;
     getCallerUserRole(): Promise<UserRole>;
     getCashboxTotals(): Promise<{
@@ -168,7 +169,6 @@ export interface backendInterface {
     getLatestExchangeRate(): Promise<ExchangeRate>;
     getTopItemsSold(_count: bigint): Promise<Array<TopSellingProduct>>;
     getTopSearchedProducts(_count: bigint): Promise<Array<TopSearchedProduct>>;
-    getUserProfile(user: Principal): Promise<UserProfile | null>;
     hasDelinquentSales(delinquentSales: Array<Sale>): Promise<boolean>;
     isCallerAdmin(): Promise<boolean>;
     listCashboxEntries(): Promise<Array<CashboxEntry>>;
@@ -180,6 +180,7 @@ export interface backendInterface {
     listSuppliers(): Promise<Array<Supplier>>;
     postSale(id: string, customerName: string, itemsSold: Array<InventoryItem>, totalAmountUsd: number, isCreditSale: boolean): Promise<void>;
     recordSearchEvent(_payload: RecordSearchEventPayload): Promise<void>;
+    registerUserRole(permissionLevel: string, userName: string): Promise<string>;
     saveCallerUserProfile(profile: UserProfile): Promise<void>;
     searchProducts(searchQuery: string): Promise<Array<InventoryItem>>;
     updateInventoryItem(id: string, payload: UpdateInventoryItemPayload): Promise<InventoryItem>;

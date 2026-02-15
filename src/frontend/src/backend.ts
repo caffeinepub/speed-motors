@@ -253,6 +253,7 @@ export interface backendInterface {
     createSupplier(payload: CreateSupplierPayload): Promise<Supplier>;
     filterInventoryByCategory(category: string): Promise<Array<InventoryItem>>;
     findOverdueDelinquentSales(delinquentSales: Array<Sale>): Promise<Array<Sale>>;
+    getBuildArtifacts(): Promise<string>;
     getCallerUserProfile(): Promise<UserProfile | null>;
     getCallerUserRole(): Promise<UserRole>;
     getCashboxTotals(): Promise<{
@@ -268,7 +269,6 @@ export interface backendInterface {
     getLatestExchangeRate(): Promise<ExchangeRate>;
     getTopItemsSold(_count: bigint): Promise<Array<TopSellingProduct>>;
     getTopSearchedProducts(_count: bigint): Promise<Array<TopSearchedProduct>>;
-    getUserProfile(user: Principal): Promise<UserProfile | null>;
     hasDelinquentSales(delinquentSales: Array<Sale>): Promise<boolean>;
     isCallerAdmin(): Promise<boolean>;
     listCashboxEntries(): Promise<Array<CashboxEntry>>;
@@ -280,6 +280,7 @@ export interface backendInterface {
     listSuppliers(): Promise<Array<Supplier>>;
     postSale(id: string, customerName: string, itemsSold: Array<InventoryItem>, totalAmountUsd: number, isCreditSale: boolean): Promise<void>;
     recordSearchEvent(_payload: RecordSearchEventPayload): Promise<void>;
+    registerUserRole(permissionLevel: string, userName: string): Promise<string>;
     saveCallerUserProfile(profile: UserProfile): Promise<void>;
     searchProducts(searchQuery: string): Promise<Array<InventoryItem>>;
     updateInventoryItem(id: string, payload: UpdateInventoryItemPayload): Promise<InventoryItem>;
@@ -581,6 +582,20 @@ export class Backend implements backendInterface {
             return from_candid_vec_n33(this._uploadFile, this._downloadFile, result);
         }
     }
+    async getBuildArtifacts(): Promise<string> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getBuildArtifacts();
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getBuildArtifacts();
+            return result;
+        }
+    }
     async getCallerUserProfile(): Promise<UserProfile | null> {
         if (this.processError) {
             try {
@@ -739,20 +754,6 @@ export class Backend implements backendInterface {
             return result;
         }
     }
-    async getUserProfile(arg0: Principal): Promise<UserProfile | null> {
-        if (this.processError) {
-            try {
-                const result = await this.actor.getUserProfile(arg0);
-                return from_candid_opt_n37(this._uploadFile, this._downloadFile, result);
-            } catch (e) {
-                this.processError(e);
-                throw new Error("unreachable");
-            }
-        } else {
-            const result = await this.actor.getUserProfile(arg0);
-            return from_candid_opt_n37(this._uploadFile, this._downloadFile, result);
-        }
-    }
     async hasDelinquentSales(arg0: Array<Sale>): Promise<boolean> {
         if (this.processError) {
             try {
@@ -904,6 +905,20 @@ export class Backend implements backendInterface {
             }
         } else {
             const result = await this.actor.recordSearchEvent(arg0);
+            return result;
+        }
+    }
+    async registerUserRole(arg0: string, arg1: string): Promise<string> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.registerUserRole(arg0, arg1);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.registerUserRole(arg0, arg1);
             return result;
         }
     }

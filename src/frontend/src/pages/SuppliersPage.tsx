@@ -1,133 +1,183 @@
 import { useState } from 'react';
-import { Truck, Plus } from 'lucide-react';
 import { useSuppliers, useCreateSupplier } from '@/hooks/useQueries';
+import { useInternetIdentity } from '@/hooks/useInternetIdentity';
 import { useNavigate } from '@tanstack/react-router';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Skeleton } from '@/components/ui/skeleton';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import LargeButton from '@/components/LargeButton';
 import { generateId } from '@/lib/utils';
+import { extractErrorMessage } from '@/lib/errorMessage';
 import { toast } from 'sonner';
+import { Truck, Eye, AlertCircle, LogIn } from 'lucide-react';
 import { t } from '@/lib/i18n';
 
 export default function SuppliersPage() {
+  const navigate = useNavigate();
+  const { identity, login, loginStatus } = useInternetIdentity();
   const { data: suppliers = [], isLoading } = useSuppliers();
   const createSupplier = useCreateSupplier();
-  const navigate = useNavigate();
-  const [dialogOpen, setDialogOpen] = useState(false);
+
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     contactInfo: '',
     address: '',
   });
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const isAuthenticated = !!identity && !identity.getPrincipal().isAnonymous();
+  const isLoggingIn = loginStatus === 'logging-in';
+
+  const handleSignIn = async () => {
+    try {
+      await login();
+    } catch (error: any) {
+      console.error('Login error:', error);
+      toast.error(t('auth.sign_in_error'));
+    }
+  };
+
+  const handleCreateSupplier = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!isAuthenticated) {
+      return;
+    }
+
+    if (!formData.name.trim()) {
+      toast.error('Supplier name is required');
+      return;
+    }
 
     try {
       await createSupplier.mutateAsync({
         id: generateId(),
-        name: formData.name,
-        contactInfo: formData.contactInfo,
-        address: formData.address,
+        name: formData.name.trim(),
+        contactInfo: formData.contactInfo.trim(),
+        address: formData.address.trim(),
       });
-
-      toast.success(t('suppliers.success'));
+      toast.success(t('suppliers.success_create'));
+      setShowCreateDialog(false);
       setFormData({ name: '', contactInfo: '', address: '' });
-      setDialogOpen(false);
     } catch (error) {
-      toast.error(t('suppliers.error'));
-      console.error(error);
+      const errorMsg = extractErrorMessage(error);
+      toast.error(`Failed to create supplier${errorMsg ? ': ' + errorMsg : ''}`);
+      console.error('Create supplier error:', error);
     }
   };
+
+  const handleViewSupplier = (supplierId: string) => {
+    navigate({ to: `/suppliers/${supplierId}` });
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <p className="text-muted-foreground">{t('action.loading')}</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">{t('suppliers.title')}</h1>
-          <p className="text-muted-foreground">{t('suppliers.subtitle')}</p>
-        </div>
-        <LargeButton onClick={() => setDialogOpen(true)}>
-          <Plus className="mr-2 h-5 w-5" />
+        <h1 className="text-3xl font-bold">{t('nav.suppliers')}</h1>
+        <LargeButton onClick={() => setShowCreateDialog(true)}>
+          <Truck className="mr-2 h-5 w-5" />
           {t('suppliers.add_supplier')}
         </LargeButton>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Truck className="h-5 w-5" />
-            {t('suppliers.list_title')}
-          </CardTitle>
+          <CardTitle>{t('suppliers.list_title')}</CardTitle>
         </CardHeader>
         <CardContent>
-          {isLoading ? (
-            <div className="space-y-4">
-              {[...Array(5)].map((_, i) => (
-                <Skeleton key={i} className="h-20 w-full" />
-              ))}
-            </div>
-          ) : suppliers.length === 0 ? (
-            <div className="py-12 text-center">
-              <Truck className="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
-              <p className="text-sm text-muted-foreground">{t('suppliers.no_suppliers')}</p>
-              <p className="text-sm text-muted-foreground">{t('suppliers.start_adding')}</p>
-            </div>
+          {suppliers.length === 0 ? (
+            <p className="text-center text-muted-foreground">{t('suppliers.no_suppliers')}</p>
           ) : (
-            <div className="space-y-2">
-              {suppliers.map((supplier) => (
-                <div
-                  key={supplier.id}
-                  className="flex cursor-pointer items-center justify-between rounded-lg border p-4 transition-colors hover:bg-muted/50"
-                  onClick={() => navigate({ to: '/suppliers/$supplierId', params: { supplierId: supplier.id } })}
-                >
-                  <div className="flex-1">
-                    <h3 className="font-semibold">{supplier.name}</h3>
-                    <p className="text-sm text-muted-foreground">{supplier.contactInfo}</p>
-                    {supplier.address && (
-                      <p className="text-xs text-muted-foreground">{supplier.address}</p>
-                    )}
-                  </div>
-                  <div className="text-right text-xs text-muted-foreground">
-                    {new Date(Number(supplier.createdAt) / 1000000).toLocaleDateString('es-ES')}
-                  </div>
-                </div>
-              ))}
-            </div>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>{t('suppliers.name')}</TableHead>
+                  <TableHead>{t('suppliers.contact')}</TableHead>
+                  <TableHead>{t('suppliers.address')}</TableHead>
+                  <TableHead className="text-right">{t('action.actions')}</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {suppliers.map((supplier) => (
+                  <TableRow key={supplier.id}>
+                    <TableCell className="font-medium">{supplier.name}</TableCell>
+                    <TableCell>{supplier.contactInfo || '-'}</TableCell>
+                    <TableCell>{supplier.address || '-'}</TableCell>
+                    <TableCell className="text-right">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleViewSupplier(supplier.id)}
+                      >
+                        <Eye className="mr-2 h-4 w-4" />
+                        {t('action.view')}
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           )}
         </CardContent>
       </Card>
 
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+      <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{t('suppliers.add_new')}</DialogTitle>
+            <DialogTitle>{t('suppliers.create_title')}</DialogTitle>
           </DialogHeader>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          {!isAuthenticated && (
+            <Alert>
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription className="flex items-center justify-between gap-4">
+                <span>{t('auth.sign_in_to_create')}</span>
+                <Button
+                  onClick={handleSignIn}
+                  disabled={isLoggingIn}
+                  size="sm"
+                  className="gap-2"
+                >
+                  <LogIn className="h-4 w-4" />
+                  {isLoggingIn ? t('auth.signing_in') : t('auth.sign_in')}
+                </Button>
+              </AlertDescription>
+            </Alert>
+          )}
+
+          <form onSubmit={handleCreateSupplier} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="name">{t('suppliers.name')} *</Label>
+              <Label htmlFor="name">{t('suppliers.name')}</Label>
               <Input
                 id="name"
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 placeholder={t('suppliers.name_placeholder')}
-                required
+                disabled={!isAuthenticated}
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="contactInfo">{t('suppliers.contact_info')} *</Label>
+              <Label htmlFor="contactInfo">{t('suppliers.contact')}</Label>
               <Input
                 id="contactInfo"
                 value={formData.contactInfo}
                 onChange={(e) => setFormData({ ...formData, contactInfo: e.target.value })}
                 placeholder={t('suppliers.contact_placeholder')}
-                required
+                disabled={!isAuthenticated}
               />
             </div>
 
@@ -138,14 +188,25 @@ export default function SuppliersPage() {
                 value={formData.address}
                 onChange={(e) => setFormData({ ...formData, address: e.target.value })}
                 placeholder={t('suppliers.address_placeholder')}
-                rows={2}
+                rows={3}
+                disabled={!isAuthenticated}
               />
             </div>
 
             <DialogFooter>
-              <LargeButton type="submit" disabled={createSupplier.isPending}>
-                {createSupplier.isPending ? t('suppliers.adding') : t('action.add')}
-              </LargeButton>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setShowCreateDialog(false)}
+              >
+                {t('action.cancel')}
+              </Button>
+              <Button
+                type="submit"
+                disabled={!isAuthenticated || createSupplier.isPending}
+              >
+                {createSupplier.isPending ? t('action.creating') : t('action.create')}
+              </Button>
             </DialogFooter>
           </form>
         </DialogContent>

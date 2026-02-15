@@ -1,21 +1,21 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useActor } from './useActor';
-import type { 
-  InventoryItem, 
-  UpdateInventoryItemPayload, 
-  ExchangeRate, 
-  Customer, 
+import type {
+  InventoryItem,
+  InventoryItemCreatePayload,
+  UpdateInventoryItemPayload,
+  ExchangeRate,
+  Customer,
   Sale,
   CashboxEntry,
   Variant__in_out,
-  TopSellingProduct,
   TopSearchedProduct,
+  TopSellingProduct,
   NetProfitEntry,
   Supplier,
   CreateSupplierPayload,
   Closure,
   CreateClosurePayload,
-  InventoryItemCreatePayload
 } from '@/backend';
 
 // Inventory Queries
@@ -25,7 +25,7 @@ export function useInventory() {
   return useQuery<InventoryItem[]>({
     queryKey: ['inventory'],
     queryFn: async () => {
-      if (!actor) return [];
+      if (!actor) throw new Error('Actor not available');
       return actor.listInventory();
     },
     enabled: !!actor && !isFetching,
@@ -46,8 +46,8 @@ export function useInventoryItem(id: string) {
 }
 
 export function useCreateInventoryItem() {
-  const queryClient = useQueryClient();
   const { actor } = useActor();
+  const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async (payload: InventoryItemCreatePayload) => {
@@ -61,110 +61,21 @@ export function useCreateInventoryItem() {
 }
 
 export function useUpdateInventoryItem() {
-  const queryClient = useQueryClient();
   const { actor } = useActor();
+  const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (data: { id: string; payload: UpdateInventoryItemPayload }) => {
+    mutationFn: async ({ id, payload }: { id: string; payload: UpdateInventoryItemPayload }) => {
       if (!actor) throw new Error('Actor not available');
-      return actor.updateInventoryItem(data.id, data.payload);
+      return actor.updateInventoryItem(id, payload);
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['inventory'] });
+      queryClient.invalidateQueries({ queryKey: ['inventory', variables.id] });
     },
   });
 }
 
-// Exchange Rate Queries
-export function useExchangeRates() {
-  const { actor, isFetching } = useActor();
-
-  return useQuery<ExchangeRate[]>({
-    queryKey: ['exchangeRates'],
-    queryFn: async () => {
-      if (!actor) return [];
-      return actor.listExchangeRates();
-    },
-    enabled: !!actor && !isFetching,
-  });
-}
-
-export function useLatestExchangeRate() {
-  const { actor, isFetching } = useActor();
-
-  return useQuery<ExchangeRate | null>({
-    queryKey: ['latestExchangeRate'],
-    queryFn: async () => {
-      if (!actor) return null;
-      try {
-        return await actor.getLatestExchangeRate();
-      } catch {
-        return null;
-      }
-    },
-    enabled: !!actor && !isFetching,
-  });
-}
-
-export function useAddExchangeRate() {
-  const queryClient = useQueryClient();
-  const { actor } = useActor();
-
-  return useMutation({
-    mutationFn: async (data: { bcvVesPerUsd: number; copPerUsd: number }) => {
-      if (!actor) throw new Error('Actor not available');
-      return actor.addExchangeRate(data.bcvVesPerUsd, data.copPerUsd);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['exchangeRates'] });
-      queryClient.invalidateQueries({ queryKey: ['latestExchangeRate'] });
-    },
-  });
-}
-
-// Customer Queries
-export function useCustomers() {
-  const { actor, isFetching } = useActor();
-
-  return useQuery<Customer[]>({
-    queryKey: ['customers'],
-    queryFn: async () => {
-      if (!actor) return [];
-      return actor.listCustomers();
-    },
-    enabled: !!actor && !isFetching,
-  });
-}
-
-export function useCustomer(id: string) {
-  const { actor, isFetching } = useActor();
-
-  return useQuery<Customer>({
-    queryKey: ['customer', id],
-    queryFn: async () => {
-      if (!actor) throw new Error('Actor not available');
-      return actor.getCustomer(id);
-    },
-    enabled: !!actor && !isFetching && !!id,
-  });
-}
-
-export function useCreateCustomer() {
-  const queryClient = useQueryClient();
-  const { actor } = useActor();
-
-  return useMutation({
-    mutationFn: async (data: { id: string; name: string; contactInfo: string }) => {
-      if (!actor) throw new Error('Actor not available');
-      return actor.createCustomer(data.id, data.name, data.contactInfo);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['customers'] });
-    },
-  });
-}
-
-// Search
 export function useSearchProducts() {
   const { actor } = useActor();
 
@@ -176,30 +87,116 @@ export function useSearchProducts() {
   });
 }
 
-// Delinquent Sales
-export function useDelinquentSales() {
+export function useCategories() {
   const { actor, isFetching } = useActor();
 
-  return useQuery<Sale[]>({
-    queryKey: ['delinquentSales'],
+  return useQuery<string[]>({
+    queryKey: ['categories'],
     queryFn: async () => {
-      if (!actor) return [];
-      return actor.listDelinquentSales();
+      if (!actor) throw new Error('Actor not available');
+      return actor.getDistinctCategories();
     },
     enabled: !!actor && !isFetching,
   });
 }
 
-// Alias for backward compatibility
-export const useOverdueDelinquentSales = useDelinquentSales;
+// Exchange Rate Queries
+export function useExchangeRates() {
+  const { actor, isFetching } = useActor();
 
-// Sales
-export function usePostSale() {
-  const queryClient = useQueryClient();
+  return useQuery<ExchangeRate[]>({
+    queryKey: ['exchangeRates'],
+    queryFn: async () => {
+      if (!actor) throw new Error('Actor not available');
+      return actor.listExchangeRates();
+    },
+    enabled: !!actor && !isFetching,
+  });
+}
+
+export function useLatestExchangeRate() {
+  const { actor, isFetching } = useActor();
+
+  return useQuery<ExchangeRate>({
+    queryKey: ['exchangeRates', 'latest'],
+    queryFn: async () => {
+      if (!actor) throw new Error('Actor not available');
+      return actor.getLatestExchangeRate();
+    },
+    enabled: !!actor && !isFetching,
+  });
+}
+
+export function useAddExchangeRate() {
   const { actor } = useActor();
+  const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (data: {
+    mutationFn: async ({ bcvVesPerUsd, copPerUsd }: { bcvVesPerUsd: number; copPerUsd: number }) => {
+      if (!actor) throw new Error('Actor not available');
+      return actor.addExchangeRate(bcvVesPerUsd, copPerUsd);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['exchangeRates'] });
+    },
+  });
+}
+
+// Customer Queries
+export function useCustomers() {
+  const { actor, isFetching } = useActor();
+
+  return useQuery<Customer[]>({
+    queryKey: ['customers'],
+    queryFn: async () => {
+      if (!actor) throw new Error('Actor not available');
+      return actor.listCustomers();
+    },
+    enabled: !!actor && !isFetching,
+  });
+}
+
+export function useCustomer(id: string) {
+  const { actor, isFetching } = useActor();
+
+  return useQuery<Customer>({
+    queryKey: ['customers', id],
+    queryFn: async () => {
+      if (!actor) throw new Error('Actor not available');
+      return actor.getCustomer(id);
+    },
+    enabled: !!actor && !isFetching && !!id,
+  });
+}
+
+export function useCreateCustomer() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, name, contactInfo }: { id: string; name: string; contactInfo: string }) => {
+      if (!actor) throw new Error('Actor not available');
+      return actor.createCustomer(id, name, contactInfo);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['customers'] });
+    },
+  });
+}
+
+// Sales Queries
+export function usePostSale() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      id,
+      customerName,
+      itemsSold,
+      totalAmountUsd,
+      isCreditSale,
+    }: {
       id: string;
       customerName: string;
       itemsSold: InventoryItem[];
@@ -207,31 +204,38 @@ export function usePostSale() {
       isCreditSale: boolean;
     }) => {
       if (!actor) throw new Error('Actor not available');
-      return actor.postSale(
-        data.id,
-        data.customerName,
-        data.itemsSold,
-        data.totalAmountUsd,
-        data.isCreditSale
-      );
+      return actor.postSale(id, customerName, itemsSold, totalAmountUsd, isCreditSale);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['inventory'] });
       queryClient.invalidateQueries({ queryKey: ['customers'] });
       queryClient.invalidateQueries({ queryKey: ['cashboxEntries'] });
-      queryClient.invalidateQueries({ queryKey: ['cashboxTotals'] });
+      queryClient.invalidateQueries({ queryKey: ['delinquentSales'] });
     },
   });
 }
 
-// Cashbox
+export function useDelinquentSales() {
+  const { actor, isFetching } = useActor();
+
+  return useQuery<Sale[]>({
+    queryKey: ['delinquentSales'],
+    queryFn: async () => {
+      if (!actor) throw new Error('Actor not available');
+      return actor.listDelinquentSales();
+    },
+    enabled: !!actor && !isFetching,
+  });
+}
+
+// Cashbox Queries
 export function useCashboxEntries() {
   const { actor, isFetching } = useActor();
 
   return useQuery<CashboxEntry[]>({
     queryKey: ['cashboxEntries'],
     queryFn: async () => {
-      if (!actor) return [];
+      if (!actor) throw new Error('Actor not available');
       return actor.listCashboxEntries();
     },
     enabled: !!actor && !isFetching,
@@ -244,7 +248,7 @@ export function useCashboxTotals() {
   return useQuery<{ usd: number; ves: number; cop: number }>({
     queryKey: ['cashboxTotals'],
     queryFn: async () => {
-      if (!actor) return { usd: 0, ves: 0, cop: 0 };
+      if (!actor) throw new Error('Actor not available');
       return actor.getCashboxTotals();
     },
     enabled: !!actor && !isFetching,
@@ -252,11 +256,17 @@ export function useCashboxTotals() {
 }
 
 export function useAddCashboxEntry() {
-  const queryClient = useQueryClient();
   const { actor } = useActor();
+  const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (data: {
+    mutationFn: async ({
+      id,
+      entryType,
+      amountUsd,
+      currency,
+      description,
+    }: {
       id: string;
       entryType: Variant__in_out;
       amountUsd: number;
@@ -264,13 +274,7 @@ export function useAddCashboxEntry() {
       description: string;
     }) => {
       if (!actor) throw new Error('Actor not available');
-      return actor.addCashboxEntry(
-        data.id,
-        data.entryType,
-        data.amountUsd,
-        data.currency,
-        data.description
-      );
+      return actor.addCashboxEntry(id, entryType, amountUsd, currency, description);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['cashboxEntries'] });
@@ -279,14 +283,14 @@ export function useAddCashboxEntry() {
   });
 }
 
-// Analytics
+// Analytics Queries
 export function useTopSearchedProducts(count: bigint) {
   const { actor, isFetching } = useActor();
 
   return useQuery<TopSearchedProduct[]>({
     queryKey: ['topSearchedProducts', count.toString()],
     queryFn: async () => {
-      if (!actor) return [];
+      if (!actor) throw new Error('Actor not available');
       return actor.getTopSearchedProducts(count);
     },
     enabled: !!actor && !isFetching,
@@ -299,7 +303,7 @@ export function useTopItemsSold(count: bigint) {
   return useQuery<TopSellingProduct[]>({
     queryKey: ['topItemsSold', count.toString()],
     queryFn: async () => {
-      if (!actor) return [];
+      if (!actor) throw new Error('Actor not available');
       return actor.getTopItemsSold(count);
     },
     enabled: !!actor && !isFetching,
@@ -310,23 +314,23 @@ export function useNetProfitByInterval(interval: string) {
   const { actor, isFetching } = useActor();
 
   return useQuery<NetProfitEntry[]>({
-    queryKey: ['netProfitByInterval', interval],
+    queryKey: ['netProfit', interval],
     queryFn: async () => {
-      if (!actor) return [];
+      if (!actor) throw new Error('Actor not available');
       return actor.aggregateNetProfitByInterval(interval);
     },
     enabled: !!actor && !isFetching,
   });
 }
 
-// Suppliers
+// Supplier Queries
 export function useSuppliers() {
   const { actor, isFetching } = useActor();
 
   return useQuery<Supplier[]>({
     queryKey: ['suppliers'],
     queryFn: async () => {
-      if (!actor) return [];
+      if (!actor) throw new Error('Actor not available');
       return actor.listSuppliers();
     },
     enabled: !!actor && !isFetching,
@@ -334,8 +338,8 @@ export function useSuppliers() {
 }
 
 export function useCreateSupplier() {
-  const queryClient = useQueryClient();
   const { actor } = useActor();
+  const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async (payload: CreateSupplierPayload) => {
@@ -348,14 +352,14 @@ export function useCreateSupplier() {
   });
 }
 
-// Closures
+// Closure Queries
 export function useClosures() {
   const { actor, isFetching } = useActor();
 
   return useQuery<Closure[]>({
     queryKey: ['closures'],
     queryFn: async () => {
-      if (!actor) return [];
+      if (!actor) throw new Error('Actor not available');
       return actor.listClosures();
     },
     enabled: !!actor && !isFetching,
@@ -363,8 +367,8 @@ export function useClosures() {
 }
 
 export function useCreateClosure() {
-  const queryClient = useQueryClient();
   const { actor } = useActor();
+  const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async (payload: CreateClosurePayload) => {
@@ -377,16 +381,22 @@ export function useCreateClosure() {
   });
 }
 
-// Categories
-export function useDistinctCategories() {
+// Build Artifacts Query (Admin-only development feature)
+export function useBuildArtifactsInfo() {
   const { actor, isFetching } = useActor();
 
-  return useQuery<string[]>({
-    queryKey: ['distinctCategories'],
+  return useQuery<string>({
+    queryKey: ['buildArtifacts'],
     queryFn: async () => {
-      if (!actor) return [];
-      return actor.getDistinctCategories();
+      if (!actor) throw new Error('Actor not available');
+      try {
+        return await actor.getBuildArtifacts();
+      } catch (error: any) {
+        // Expected to fail on deployed versions
+        throw new Error(error.message || 'Build artifacts not available');
+      }
     },
     enabled: !!actor && !isFetching,
+    retry: false,
   });
 }

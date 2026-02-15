@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { useState } from 'react';
 import GlobalSearch from '../search/GlobalSearch';
+import AuthControls from '../auth/AuthControls';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useInventory, useCustomers, useCashboxEntries, useExchangeRates } from '@/hooks/useQueries';
@@ -30,6 +31,7 @@ import {
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { t } from '@/lib/i18n';
+import { useAuthBootstrap } from '@/hooks/useAuthBootstrap';
 
 const navigation = [
   { name: t('nav.dashboard'), href: '/dashboard', icon: LayoutDashboard },
@@ -48,6 +50,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const [showSearch, setShowSearch] = useState(false);
   const [showExport, setShowExport] = useState(false);
   const [exporting, setExporting] = useState(false);
+
+  // Bootstrap authenticated users
+  useAuthBootstrap();
 
   const { data: inventory = [] } = useInventory();
   const { data: customers = [] } = useCustomers();
@@ -119,6 +124,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               <Download className="h-4 w-4" />
               <span className="hidden sm:inline">{t('action.export')}</span>
             </Button>
+            <AuthControls />
           </div>
         </div>
       </header>
