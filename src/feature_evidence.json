@@ -2,33 +2,12 @@
   "kind": "feature_evidence_report",
   "features": [
     {
-      "featureId": "feature-make-the-in-app-download-links-for-build-artifacts-work-by-ensuring-the-files-requested-by-the-dashboard-exist-as-static-assets-at-artifacts-app-build-zip-and-artifacts-source-code-md-in-production-builds",
-      "featureTitle": "Make the in-app download links for build artifacts work by ensuring the files requested by the Dashboard exist as static assets at `/artifacts/app-build.zip` and `/artifacts/SOURCE_CODE.md` in production builds.",
+      "featureId": "feature-add-a-user-visible-download-ui-in-the-speed-motors-erp-that-lets-the-user-download-the-generated-zip-files-app-build-zip-and-source-code-zip-and-the-source-code-md-file-with-clear-statuses-when-files-are-not-yet-available",
+      "featureTitle": "Add a user-visible download UI in the Speed Motors ERP that lets the user download the generated ZIP files (app-build.zip and source-code.zip) and the SOURCE_CODE.md file, with clear statuses when files are not yet available.",
       "files": [
-        "frontend/src/hooks/useStaticArtifactAvailability.ts",
-        "frontend/src/pages/DashboardPage.tsx"
-      ],
-      "components": [
-        "blob-storage@4.0.0",
-        "core-infrastructure@1.0.2",
-        "shadcn-ui@1.0.0",
-        "build-template-react@1.0.0",
-        "initial-app@1.0.0",
-        "github-export-icp-cli@1.0.0",
-        "authorization@4.0.0"
-      ],
-      "testIds": [
-        "REQ-1"
-      ],
-      "confidence": "high"
-    },
-    {
-      "featureId": "feature-add-a-downloadable-zip-export-that-contains-the-actual-project-source-tree-at-minimum-backend-sources-and-frontend-sources-config-needed-to-rebuild-and-expose-it-as-a-static-file-under-artifacts-so-users-can-download-the-full-website-source-code-directly-from-the-app",
-      "featureTitle": "Add a downloadable ZIP export that contains the actual project source tree (at minimum: `backend/` sources and `frontend/` sources/config needed to rebuild), and expose it as a static file under `/artifacts/` so users can download the full website source code directly from the app.",
-      "files": [
-        "frontend/scripts/package-artifact.sh",
-        "frontend/src/hooks/useStaticArtifactAvailability.ts",
-        "frontend/src/pages/DashboardPage.tsx"
+        "frontend/src/components/artifacts/ArtifactsDownloadDialog.tsx",
+        "frontend/src/components/layout/AppLayout.tsx",
+        "frontend/src/lib/i18n.ts"
       ],
       "components": [
         "blob-storage@4.0.0",
@@ -41,29 +20,6 @@
       ],
       "testIds": [
         "REQ-2"
-      ],
-      "confidence": "high"
-    },
-    {
-      "featureId": "feature-update-the-local-packaging-workflow-scripts-e-g-frontend-scripts-package-artifact-sh-and-related-docs-so-that-running-the-documented-command-produces-1-the-deployable-build-zip-2-source-code-md-and-3-the-full-source-code-zip-and-stages-copies-these-artifacts-into-the-frontend-static-public-artifacts-folder-so-the-app-can-serve-them-at-artifacts",
-      "featureTitle": "Update the local packaging workflow scripts (e.g., `frontend/scripts/package-artifact.sh` and related docs) so that running the documented command produces: (1) the deployable build ZIP, (2) `SOURCE_CODE.md`, and (3) the full source-code ZIP, and stages/copies these artifacts into the frontend static public artifacts folder so the app can serve them at `/artifacts/...`.",
-      "files": [
-        "frontend/artifacts/DEPLOY_README.md",
-        "frontend/scripts/README.md",
-        "frontend/scripts/generate-source-document.sh",
-        "frontend/scripts/package-artifact.sh"
-      ],
-      "components": [
-        "blob-storage@4.0.0",
-        "core-infrastructure@1.0.2",
-        "shadcn-ui@1.0.0",
-        "build-template-react@1.0.0",
-        "initial-app@1.0.0",
-        "github-export-icp-cli@1.0.0",
-        "authorization@4.0.0"
-      ],
-      "testIds": [
-        "REQ-3"
       ],
       "confidence": "high"
     }

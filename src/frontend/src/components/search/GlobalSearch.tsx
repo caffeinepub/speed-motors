@@ -1,14 +1,14 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from '@tanstack/react-router';
-import { Search, Package } from 'lucide-react';
+import { Search, Package, Users, Truck, ShoppingCart } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { useDebounce } from '@/hooks/useDebounce';
-import { useSearchProducts } from '@/hooks/useQueries';
-import { formatUSD } from '@/lib/currency';
+import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import type { InventoryItem } from '@/backend';
+import { useIntelligenceSearch } from '@/hooks/useQueries';
+import { useDebounce } from '@/hooks/useDebounce';
+import { useNavigate } from '@tanstack/react-router';
 import { t } from '@/lib/i18n';
+import type { IntelligenceSearchResult } from '@/backend';
 
 interface GlobalSearchProps {
   open: boolean;
@@ -16,47 +16,63 @@ interface GlobalSearchProps {
 }
 
 export default function GlobalSearch({ open, onOpenChange }: GlobalSearchProps) {
-  const [query, setQuery] = useState('');
-  const [results, setResults] = useState<InventoryItem[]>([]);
-  const debouncedQuery = useDebounce(query, 300);
-  const searchProducts = useSearchProducts();
+  const [searchTerm, setSearchTerm] = useState('');
+  const debouncedSearch = useDebounce(searchTerm, 300);
+  const intelligenceSearch = useIntelligenceSearch();
   const navigate = useNavigate();
 
   useEffect(() => {
-    const performSearch = async () => {
-      if (!debouncedQuery.trim()) {
-        setResults([]);
-        return;
-      }
+    if (debouncedSearch.trim().length >= 2) {
+      intelligenceSearch.mutate(debouncedSearch);
+    }
+  }, [debouncedSearch]);
 
-      try {
-        const searchResults = await searchProducts.mutateAsync(debouncedQuery);
-        setResults(searchResults);
-      } catch (error) {
-        console.error('Search error:', error);
-        setResults([]);
-      }
-    };
+  const results = intelligenceSearch.data || [];
 
-    performSearch();
-  }, [debouncedQuery]);
-
-  useEffect(() => {
-    const down = (e: KeyboardEvent) => {
-      if (e.key === 'k' && (e.metaKey || e.ctrlKey)) {
-        e.preventDefault();
-        onOpenChange(true);
-      }
-    };
-
-    document.addEventListener('keydown', down);
-    return () => document.removeEventListener('keydown', down);
-  }, [onOpenChange]);
-
-  const handleSelectProduct = (productId: string) => {
-    navigate({ to: '/inventory' });
+  const handleResultClick = (result: IntelligenceSearchResult) => {
+    if (result.__kind__ === 'inventoryItem') {
+      navigate({ to: '/inventory' });
+    } else if (result.__kind__ === 'customer') {
+      navigate({ to: `/customers/${result.customer.id}` });
+    } else if (result.__kind__ === 'supplier') {
+      navigate({ to: `/suppliers/${result.supplier.id}` });
+    } else if (result.__kind__ === 'sale') {
+      navigate({ to: '/sales', search: { saleId: result.sale.id } });
+    }
     onOpenChange(false);
-    setQuery('');
+    setSearchTerm('');
+  };
+
+  const getResultIcon = (result: IntelligenceSearchResult) => {
+    if (result.__kind__ === 'inventoryItem') return <Package className="h-4 w-4" />;
+    if (result.__kind__ === 'customer') return <Users className="h-4 w-4" />;
+    if (result.__kind__ === 'supplier') return <Truck className="h-4 w-4" />;
+    if (result.__kind__ === 'sale') return <ShoppingCart className="h-4 w-4" />;
+    return null;
+  };
+
+  const getResultLabel = (result: IntelligenceSearchResult) => {
+    if (result.__kind__ === 'inventoryItem') return t('search.inventory');
+    if (result.__kind__ === 'customer') return t('search.customer');
+    if (result.__kind__ === 'supplier') return t('search.supplier');
+    if (result.__kind__ === 'sale') return t('search.sale');
+    return '';
+  };
+
+  const getResultTitle = (result: IntelligenceSearchResult) => {
+    if (result.__kind__ === 'inventoryItem') return result.inventoryItem.description || result.inventoryItem.id;
+    if (result.__kind__ === 'customer') return result.customer.name;
+    if (result.__kind__ === 'supplier') return result.supplier.name;
+    if (result.__kind__ === 'sale') return `${t('search.sale')} - ${result.sale.customerName}`;
+    return '';
+  };
+
+  const getResultSubtitle = (result: IntelligenceSearchResult) => {
+    if (result.__kind__ === 'inventoryItem') return `${t('table.category')}: ${result.inventoryItem.category}`;
+    if (result.__kind__ === 'customer') return result.customer.contactInfo;
+    if (result.__kind__ === 'supplier') return result.supplier.contactInfo;
+    if (result.__kind__ === 'sale') return `${t('table.total')}: $${result.sale.totalAmountUsd.toFixed(2)}`;
+    return '';
   };
 
   return (
@@ -65,59 +81,66 @@ export default function GlobalSearch({ open, onOpenChange }: GlobalSearchProps) 
         <DialogHeader>
           <DialogTitle>{t('search.title')}</DialogTitle>
         </DialogHeader>
-        
+
         <div className="space-y-4">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               placeholder={t('search.placeholder')}
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-10"
               autoFocus
             />
           </div>
 
-          <div className="max-h-96 overflow-y-auto">
-            {searchProducts.isPending && (
-              <div className="py-8 text-center text-sm text-muted-foreground">
-                {t('search.searching')}
-              </div>
-            )}
+          {intelligenceSearch.isPending && (
+            <div className="py-8 text-center text-sm text-muted-foreground">
+              {t('action.searching')}
+            </div>
+          )}
 
-            {!searchProducts.isPending && debouncedQuery && results.length === 0 && (
-              <div className="py-8 text-center text-sm text-muted-foreground">
-                {t('search.no_results')}
-              </div>
-            )}
+          {!intelligenceSearch.isPending && searchTerm.trim().length >= 2 && results.length === 0 && (
+            <div className="py-8 text-center text-sm text-muted-foreground">
+              {t('search.no_results')}
+            </div>
+          )}
 
-            {!searchProducts.isPending && results.length > 0 && (
-              <div className="space-y-2">
-                {results.map((product) => (
-                  <button
-                    key={product.id}
-                    onClick={() => handleSelectProduct(product.id)}
-                    className="flex w-full items-center gap-4 rounded-lg border p-4 text-left transition-colors hover:bg-muted"
-                  >
-                    <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-muted">
-                      <Package className="h-6 w-6 text-muted-foreground" />
+          {!intelligenceSearch.isPending && results.length > 0 && (
+            <div className="max-h-96 space-y-2 overflow-y-auto">
+              {results.map((result, index) => (
+                <Button
+                  key={index}
+                  variant="ghost"
+                  className="h-auto w-full justify-start p-3 text-left"
+                  onClick={() => handleResultClick(result)}
+                >
+                  <div className="flex w-full items-start gap-3">
+                    <div className="mt-1 flex-shrink-0">
+                      {getResultIcon(result)}
                     </div>
-                    <div className="flex-1">
-                      <div className="font-medium">{product.description || product.category}</div>
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <Badge variant="outline">{product.category}</Badge>
-                        <span>Stock: {Number(product.stockCurrent)}</span>
+                    <div className="flex-1 space-y-1">
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium">{getResultTitle(result)}</span>
+                        <Badge variant="outline" className="text-xs">
+                          {getResultLabel(result)}
+                        </Badge>
                       </div>
+                      <p className="text-sm text-muted-foreground">
+                        {getResultSubtitle(result)}
+                      </p>
                     </div>
-                    <div className="text-right">
-                      <div className="font-medium">{formatUSD(product.sellRetailUsd)}</div>
-                      <div className="text-xs text-muted-foreground">{t('sales.retail')}</div>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
+                  </div>
+                </Button>
+              ))}
+            </div>
+          )}
+
+          {searchTerm.trim().length < 2 && (
+            <div className="py-8 text-center text-sm text-muted-foreground">
+              {t('search.hint')}
+            </div>
+          )}
         </div>
       </DialogContent>
     </Dialog>

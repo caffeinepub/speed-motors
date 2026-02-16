@@ -56,6 +56,10 @@ export interface ExchangeRate {
   'bcvVesPerUsd' : number,
   'date' : Time,
 }
+export type IntelligenceSearchResult = { 'inventoryItem' : InventoryItem } |
+  { 'customer' : Customer } |
+  { 'supplier' : Supplier } |
+  { 'sale' : Sale };
 export interface InventoryItem {
   'id' : string,
   'stockMin' : bigint,
@@ -129,6 +133,13 @@ export interface UpdateInventoryItemPayload {
   'profitMarginPercent' : [] | [number],
   'costUsd' : [] | [number],
 }
+export interface UpdateSalePayload {
+  'customerName' : [] | [string],
+  'dueDate' : [] | [Time],
+  'totalAmountUsd' : [] | [number],
+  'itemsSold' : [] | [Array<InventoryItem>],
+  'isCreditSale' : [] | [boolean],
+}
 export interface UserProfile { 'name' : string, 'role' : string }
 export type UserRole = { 'admin' : null } |
   { 'user' : null } |
@@ -181,7 +192,7 @@ export interface _SERVICE {
   'createSupplier' : ActorMethod<[CreateSupplierPayload], Supplier>,
   'filterInventoryByCategory' : ActorMethod<[string], Array<InventoryItem>>,
   'findOverdueDelinquentSales' : ActorMethod<[Array<Sale>], Array<Sale>>,
-  'getBuildArtifacts' : ActorMethod<[], string>,
+  'getBuildArtifactsZipUrls' : ActorMethod<[], Array<string>>,
   'getCallerUserProfile' : ActorMethod<[], [] | [UserProfile]>,
   'getCallerUserRole' : ActorMethod<[], UserRole>,
   'getCashboxTotals' : ActorMethod<
@@ -198,6 +209,7 @@ export interface _SERVICE {
   'getTopSearchedProducts' : ActorMethod<[bigint], Array<TopSearchedProduct>>,
   'getUserProfile' : ActorMethod<[Principal], [] | [UserProfile]>,
   'hasDelinquentSales' : ActorMethod<[Array<Sale>], boolean>,
+  'intelligenceSearch' : ActorMethod<[string], Array<IntelligenceSearchResult>>,
   'isCallerAdmin' : ActorMethod<[], boolean>,
   'listCashboxEntries' : ActorMethod<[], Array<CashboxEntry>>,
   'listClosures' : ActorMethod<[], Array<Closure>>,
@@ -206,6 +218,9 @@ export interface _SERVICE {
   'listExchangeRates' : ActorMethod<[], Array<ExchangeRate>>,
   'listInventory' : ActorMethod<[], Array<InventoryItem>>,
   'listSuppliers' : ActorMethod<[], Array<Supplier>>,
+  'modifyCustomer' : ActorMethod<[string, string, string, number], Customer>,
+  'modifySale' : ActorMethod<[string, UpdateSalePayload], Sale>,
+  'modifySupplier' : ActorMethod<[string, string, string, string], Supplier>,
   'postSale' : ActorMethod<
     [string, string, Array<InventoryItem>, number, boolean],
     undefined

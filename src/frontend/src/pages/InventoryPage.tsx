@@ -11,7 +11,7 @@ import InventoryItemForm from '@/components/inventory/InventoryItemForm';
 import { formatUSD, convertToVES, convertToCOP, formatVES, formatCOP } from '@/lib/currency';
 import { cn } from '@/lib/utils';
 import type { InventoryItem } from '@/backend';
-import { t, plural } from '@/lib/i18n';
+import { t } from '@/lib/i18n';
 
 export default function InventoryPage() {
   const { data: inventory = [], isLoading } = useInventory();
@@ -66,9 +66,9 @@ export default function InventoryPage() {
           </CardHeader>
           <CardContent>
             <p className="text-sm">
-              {lowStockItems.length === 1 
-                ? t('inventory.low_stock_description', { count: lowStockItems.length.toString() })
-                : t('inventory.low_stock_description_plural', { count: lowStockItems.length.toString() })}
+              {lowStockItems.length} {lowStockItems.length === 1 
+                ? t('inventory.low_stock_description')
+                : t('inventory.low_stock_description_plural')}
             </p>
           </CardContent>
         </Card>
@@ -108,12 +108,6 @@ export default function InventoryPage() {
                   ? t('inventory.start_adding')
                   : t('inventory.no_products_category')}
               </p>
-              {selectedCategory === 'all' && (
-                <LargeButton onClick={handleAddNew}>
-                  <Plus className="mr-2 h-5 w-5" />
-                  {t('inventory.add_product')}
-                </LargeButton>
-              )}
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -127,64 +121,50 @@ export default function InventoryPage() {
                     <TableHead className="text-right">{t('table.stock_min')}</TableHead>
                     <TableHead className="text-right">{t('table.cost_usd')}</TableHead>
                     <TableHead className="text-right">{t('table.retail_usd')}</TableHead>
-                    <TableHead className="text-right">{t('table.wholesale_usd')}</TableHead>
-                    <TableHead className="text-right">{t('table.special_usd')}</TableHead>
-                    {latestRate && (
-                      <>
-                        <TableHead className="text-right">{t('table.retail_ves')}</TableHead>
-                        <TableHead className="text-right">{t('table.retail_cop')}</TableHead>
-                      </>
-                    )}
-                    <TableHead></TableHead>
+                    <TableHead className="text-right">{t('table.retail_ves')}</TableHead>
+                    <TableHead className="text-right">{t('table.retail_cop')}</TableHead>
+                    <TableHead className="text-right">{t('action.actions')}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filteredInventory.map((item) => {
                     const isLowStock = item.stockCurrent <= item.stockMin;
+                    const vesPrice = convertToVES(item.sellRetailUsd, latestRate ?? null);
+                    const copPrice = convertToCOP(item.sellRetailUsd, latestRate ?? null);
+
                     return (
                       <TableRow key={item.id} className={cn(isLowStock && 'bg-destructive/5')}>
-                        <TableCell className="font-medium">{item.id}</TableCell>
-                        <TableCell>
+                        <TableCell className="font-medium">
                           <div className="flex items-center gap-2">
-                            {item.description || <span className="text-muted-foreground italic">{t('inventory.no_description')}</span>}
+                            {item.id}
                             {isLowStock && (
-                              <Badge variant="destructive" className="ml-2">
+                              <Badge variant="destructive" className="text-xs">
                                 {t('inventory.low_stock_badge')}
                               </Badge>
                             )}
                           </div>
                         </TableCell>
                         <TableCell>
-                          <Badge variant="outline">{item.category}</Badge>
+                          {item.description || (
+                            <span className="text-muted-foreground">{t('inventory.no_description')}</span>
+                          )}
                         </TableCell>
-                        <TableCell className={cn('text-right font-medium', isLowStock && 'text-destructive')}>
-                          {Number(item.stockCurrent)}
-                        </TableCell>
-                        <TableCell className="text-right text-muted-foreground">
-                          {Number(item.stockMin)}
-                        </TableCell>
+                        <TableCell>{item.category}</TableCell>
+                        <TableCell className="text-right">{item.stockCurrent.toString()}</TableCell>
+                        <TableCell className="text-right">{item.stockMin.toString()}</TableCell>
                         <TableCell className="text-right">{formatUSD(item.costUsd)}</TableCell>
-                        <TableCell className="text-right font-medium">{formatUSD(item.sellRetailUsd)}</TableCell>
-                        <TableCell className="text-right">{formatUSD(item.sellWholesaleUsd)}</TableCell>
-                        <TableCell className="text-right">{formatUSD(item.sellSpecialUsd)}</TableCell>
-                        {latestRate && (
-                          <>
-                            <TableCell className="text-right text-muted-foreground">
-                              {formatVES(convertToVES(item.sellRetailUsd, latestRate))}
-                            </TableCell>
-                            <TableCell className="text-right text-muted-foreground">
-                              {formatCOP(convertToCOP(item.sellRetailUsd, latestRate))}
-                            </TableCell>
-                          </>
-                        )}
-                        <TableCell>
+                        <TableCell className="text-right">{formatUSD(item.sellRetailUsd)}</TableCell>
+                        <TableCell className="text-right">{formatVES(vesPrice)}</TableCell>
+                        <TableCell className="text-right">{formatCOP(copPrice)}</TableCell>
+                        <TableCell className="text-right">
                           <Button
                             variant="ghost"
                             size="sm"
                             onClick={() => handleEdit(item)}
-                            className="h-8 w-8 p-0"
+                            className="gap-2"
                           >
                             <Edit className="h-4 w-4" />
+                            {t('action.edit')}
                           </Button>
                         </TableCell>
                       </TableRow>
@@ -197,8 +177,8 @@ export default function InventoryPage() {
         </CardContent>
       </Card>
 
-      <InventoryItemForm 
-        open={showForm} 
+      <InventoryItemForm
+        open={showForm}
         onOpenChange={handleCloseForm}
         mode={editingItem ? 'edit' : 'create'}
         initialItem={editingItem}

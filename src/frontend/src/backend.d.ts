@@ -96,6 +96,19 @@ export interface RecordSearchEventPayload {
     searchTerm: string;
     timestamp: Time;
 }
+export type IntelligenceSearchResult = {
+    __kind__: "inventoryItem";
+    inventoryItem: InventoryItem;
+} | {
+    __kind__: "customer";
+    customer: Customer;
+} | {
+    __kind__: "supplier";
+    supplier: Supplier;
+} | {
+    __kind__: "sale";
+    sale: Sale;
+};
 export type Blob = Uint8Array;
 export interface UpdateInventoryItemPayload {
     stockMin?: bigint;
@@ -108,6 +121,13 @@ export interface UpdateInventoryItemPayload {
     photo?: Blob;
     profitMarginPercent?: number;
     costUsd?: number;
+}
+export interface UpdateSalePayload {
+    customerName?: string;
+    dueDate?: Time;
+    totalAmountUsd?: number;
+    itemsSold?: Array<InventoryItem>;
+    isCreditSale?: boolean;
 }
 export interface Supplier {
     id: string;
@@ -153,7 +173,7 @@ export interface backendInterface {
     createSupplier(payload: CreateSupplierPayload): Promise<Supplier>;
     filterInventoryByCategory(category: string): Promise<Array<InventoryItem>>;
     findOverdueDelinquentSales(delinquentSales: Array<Sale>): Promise<Array<Sale>>;
-    getBuildArtifacts(): Promise<string>;
+    getBuildArtifactsZipUrls(): Promise<Array<string>>;
     getCallerUserProfile(): Promise<UserProfile | null>;
     getCallerUserRole(): Promise<UserRole>;
     getCashboxTotals(): Promise<{
@@ -171,6 +191,7 @@ export interface backendInterface {
     getTopSearchedProducts(_count: bigint): Promise<Array<TopSearchedProduct>>;
     getUserProfile(user: Principal): Promise<UserProfile | null>;
     hasDelinquentSales(delinquentSales: Array<Sale>): Promise<boolean>;
+    intelligenceSearch(searchTerm: string): Promise<Array<IntelligenceSearchResult>>;
     isCallerAdmin(): Promise<boolean>;
     listCashboxEntries(): Promise<Array<CashboxEntry>>;
     listClosures(): Promise<Array<Closure>>;
@@ -179,6 +200,9 @@ export interface backendInterface {
     listExchangeRates(): Promise<Array<ExchangeRate>>;
     listInventory(): Promise<Array<InventoryItem>>;
     listSuppliers(): Promise<Array<Supplier>>;
+    modifyCustomer(id: string, name: string, contactInfo: string, debtUsd: number): Promise<Customer>;
+    modifySale(id: string, payload: UpdateSalePayload): Promise<Sale>;
+    modifySupplier(id: string, name: string, contactInfo: string, address: string): Promise<Supplier>;
     postSale(id: string, customerName: string, itemsSold: Array<InventoryItem>, totalAmountUsd: number, isCreditSale: boolean): Promise<void>;
     recordSearchEvent(_payload: RecordSearchEventPayload): Promise<void>;
     saveCallerUserProfile(profile: UserProfile): Promise<void>;

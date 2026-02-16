@@ -9,10 +9,14 @@ import Iter "mo:core/Iter";
 import Runtime "mo:core/Runtime";
 import Principal "mo:core/Principal";
 import Order "mo:core/Order";
+import Array "mo:core/Array";
 import MixinStorage "blob-storage/Mixin";
 import Storage "blob-storage/Storage";
 import MixinAuthorization "authorization/MixinAuthorization";
 import AccessControl "authorization/access-control";
+
+
+
 
 actor {
   let accessControlState = AccessControl.initState();
@@ -69,6 +73,14 @@ actor {
     totalAmountUsd : Float;
     saleTimestamp : Time.Time;
     isCreditSale : Bool;
+    dueDate : ?Time.Time;
+  };
+
+  type UpdateSalePayload = {
+    customerName : ?Text;
+    itemsSold : ?[InventoryItem];
+    totalAmountUsd : ?Float;
+    isCreditSale : ?Bool;
     dueDate : ?Time.Time;
   };
 
@@ -133,6 +145,13 @@ actor {
     createdBy : Text;
   };
 
+  public type IntelligenceSearchResult = {
+    #inventoryItem : InventoryItem;
+    #sale : Sale;
+    #customer : Customer;
+    #supplier : Supplier;
+  };
+
   let inventoryItems = Map.empty<Text, InventoryItem>();
   let sales = Map.empty<Text, Sale>();
   let exchangeRates = List.empty<ExchangeRate>();
@@ -141,6 +160,9 @@ actor {
   let searchEvents = List.empty<SearchEvent>();
   let suppliers = Map.empty<Text, Supplier>();
   let closures = Map.empty<Text, Closure>();
+
+  // Store artifact URL as a Text value referencing the frontend-staged artifact
+  let artifactUrl = "/artifacts/somosora_project.zip";
 
   module InventoryItem {
     public func compare(item1 : InventoryItem, item2 : InventoryItem) : Order.Order {
@@ -225,10 +247,7 @@ actor {
     item;
   };
 
-  public shared ({ caller }) func updateInventoryItem(
-    id : Text,
-    payload : UpdateInventoryItemPayload,
-  ) : async InventoryItem {
+  public shared ({ caller }) func updateInventoryItem(id : Text, payload : UpdateInventoryItemPayload) : async InventoryItem {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can update inventory items");
     };
@@ -361,6 +380,31 @@ actor {
     };
     customers.add(id, customer);
     customer;
+  };
+
+  public shared ({ caller }) func modifyCustomer(
+    id : Text,
+    name : Text,
+    contactInfo : Text,
+    debtUsd : Float,
+  ) : async Customer {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can modify customers");
+    };
+
+    switch (customers.get(id)) {
+      case (null) { Runtime.trap("Customer does not exist for " # id) };
+      case (_existingCustomer) {
+        let modifiedCustomer : Customer = {
+          id;
+          name;
+          contactInfo;
+          debtUsd;
+        };
+        customers.add(id, modifiedCustomer);
+        modifiedCustomer;
+      };
+    };
   };
 
   public query ({ caller }) func getCustomer(id : Text) : async Customer {
@@ -745,6 +789,32 @@ actor {
     supplier;
   };
 
+  public shared ({ caller }) func modifySupplier(
+    id : Text,
+    name : Text,
+    contactInfo : Text,
+    address : Text,
+  ) : async Supplier {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can modify suppliers");
+    };
+
+    switch (suppliers.get(id)) {
+      case (null) { Runtime.trap("Supplier does not exist for " # id) };
+      case (_existingSupplier) {
+        let modifiedSupplier : Supplier = {
+          id;
+          name;
+          contactInfo;
+          address;
+          createdAt = Time.now();
+        };
+        suppliers.add(id, modifiedSupplier);
+        modifiedSupplier;
+      };
+    };
+  };
+
   public query ({ caller }) func listSuppliers() : async [Supplier] {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can list suppliers");
@@ -785,10 +855,117 @@ actor {
     closures.values().toArray();
   };
 
-  public shared ({ caller }) func getBuildArtifacts() : async Text {
+  // Returns a list of URLs to all artifact zip files.
+  public shared ({ caller }) func getBuildArtifactsZipUrls() : async [Text] {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can access build artifacts");
     };
-    "/artifacts/somosora_project.zip";
+    [artifactUrl];
+  };
+
+  public shared ({ caller }) func modifySale(id : Text, payload : UpdateSalePayload) : async Sale {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can modify sales");
+    };
+
+    switch (sales.get(id)) {
+      case (null) { Runtime.trap("Sale does not exist for " # id) };
+      case (?existingSale) {
+        let updatedSale : Sale = {
+          id = existingSale.id;
+          customerName = switch (payload.customerName) {
+            case (null) { existingSale.customerName };
+            case (?name) { name };
+          };
+          itemsSold = switch (payload.itemsSold) {
+            case (null) { existingSale.itemsSold };
+            case (?items) { items };
+          };
+          totalAmountUsd = switch (payload.totalAmountUsd) {
+            case (null) { existingSale.totalAmountUsd };
+            case (?amount) { amount };
+          };
+          saleTimestamp = existingSale.saleTimestamp;
+          isCreditSale = switch (payload.isCreditSale) {
+            case (null) { existingSale.isCreditSale };
+            case (?creditSale) { creditSale };
+          };
+          dueDate = switch (payload.dueDate) {
+            case (null) { existingSale.dueDate };
+            case (?due) { ?due };
+          };
+        };
+
+        sales.add(id, updatedSale);
+        updatedSale;
+      };
+    };
+  };
+
+  public query ({ caller }) func intelligenceSearch(searchTerm : Text) : async [IntelligenceSearchResult] {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can perform intelligent searches");
+    };
+
+    let inventoryResults = inventoryItems.values().toArray().filter(
+      func(item) {
+        item.description.contains(#text searchTerm);
+      }
+    ).map(
+      func(item) {
+        #inventoryItem(item);
+      }
+    );
+
+    let saleResults = sales.values().toArray().filter(
+      func(sale) {
+        sale.customerName.contains(#text searchTerm);
+      }
+    ).map(
+      func(sale) {
+        #sale(sale);
+      }
+    );
+
+    let customerResults = customers.values().toArray().filter(
+      func(customer) {
+        customer.name.contains(#text searchTerm);
+      }
+    ).map(
+      func(customer) {
+        #customer(customer);
+      }
+    );
+
+    let supplierResults = suppliers.values().toArray().filter(
+      func(supplier) {
+        supplier.name.contains(#text searchTerm);
+      }
+    ).map(
+      func(supplier) {
+        #supplier(supplier);
+      }
+    );
+
+    intelligenceSearchResultsToArray(inventoryResults, saleResults, customerResults, supplierResults);
+  };
+
+  func intelligenceSearchResultsToArray(
+    inventory : [IntelligenceSearchResult],
+    sales : [IntelligenceSearchResult],
+    customers : [IntelligenceSearchResult],
+    suppliers : [IntelligenceSearchResult],
+  ) : [IntelligenceSearchResult] {
+    let inventoryIter = inventory.values();
+    let salesIter = sales.values();
+    let customersIter = customers.values();
+    let suppliersIter = suppliers.values();
+    let iterArray = List.empty<IntelligenceSearchResult>();
+    iterArray.addAll(inventoryIter);
+    iterArray.addAll(salesIter);
+    iterArray.addAll(customersIter);
+    iterArray.addAll(suppliersIter);
+    iterArray.toArray();
   };
 };
+

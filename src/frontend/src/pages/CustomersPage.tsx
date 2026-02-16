@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useCustomers, useCreateCustomer, useDelinquentSales } from '@/hooks/useQueries';
+import { useCustomers, useCreateCustomer, useModifyCustomer, useDelinquentSales } from '@/hooks/useQueries';
 import { useInternetIdentity } from '@/hooks/useInternetIdentity';
 import { useNavigate } from '@tanstack/react-router';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -9,14 +9,15 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
 import LargeButton from '@/components/LargeButton';
-import OverdueCreditAlert from '@/components/customers/OverdueCreditAlert';
-import { formatUSD } from '@/lib/currency';
 import { generateId } from '@/lib/utils';
 import { extractErrorMessage } from '@/lib/errorMessage';
+import { formatUSD } from '@/lib/currency';
 import { toast } from 'sonner';
-import { UserPlus, Eye, AlertCircle, LogIn } from 'lucide-react';
+import { Users, Eye, AlertCircle, LogIn, Edit, AlertTriangle } from 'lucide-react';
 import { t } from '@/lib/i18n';
+import type { Customer } from '@/backend';
 
 export default function CustomersPage() {
   const navigate = useNavigate();
@@ -24,20 +25,21 @@ export default function CustomersPage() {
   const { data: customers = [], isLoading } = useCustomers();
   const { data: delinquentSales = [] } = useDelinquentSales();
   const createCustomer = useCreateCustomer();
+  const modifyCustomer = useModifyCustomer();
 
   const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
   const [formData, setFormData] = useState({
     name: '',
     contactInfo: '',
+    debtUsd: '0',
   });
 
   const isAuthenticated = !!identity && !identity.getPrincipal().isAnonymous();
   const isLoggingIn = loginStatus === 'logging-in';
 
-  const overdueCustomers = customers.filter(customer => {
-    const customerSales = delinquentSales.filter(sale => sale.customerName === customer.name);
-    return customerSales.length > 0;
-  });
+  const delinquentCustomerNames = new Set(delinquentSales.map(sale => sale.customerName));
 
   const handleSignIn = async () => {
     try {
@@ -68,11 +70,51 @@ export default function CustomersPage() {
       });
       toast.success(t('customers.success_create'));
       setShowCreateDialog(false);
-      setFormData({ name: '', contactInfo: '' });
+      setFormData({ name: '', contactInfo: '', debtUsd: '0' });
     } catch (error) {
       const errorMsg = extractErrorMessage(error);
       toast.error(`Failed to create customer${errorMsg ? ': ' + errorMsg : ''}`);
       console.error('Create customer error:', error);
+    }
+  };
+
+  const handleEditCustomer = (customer: Customer) => {
+    setEditingCustomer(customer);
+    setFormData({
+      name: customer.name,
+      contactInfo: customer.contactInfo,
+      debtUsd: customer.debtUsd.toString(),
+    });
+    setShowEditDialog(true);
+  };
+
+  const handleUpdateCustomer = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!isAuthenticated || !editingCustomer) {
+      return;
+    }
+
+    if (!formData.name.trim()) {
+      toast.error('Customer name is required');
+      return;
+    }
+
+    try {
+      await modifyCustomer.mutateAsync({
+        id: editingCustomer.id,
+        name: formData.name.trim(),
+        contactInfo: formData.contactInfo.trim(),
+        debtUsd: parseFloat(formData.debtUsd) || 0,
+      });
+      toast.success(t('customers.success_update'));
+      setShowEditDialog(false);
+      setEditingCustomer(null);
+      setFormData({ name: '', contactInfo: '', debtUsd: '0' });
+    } catch (error) {
+      const errorMsg = extractErrorMessage(error);
+      toast.error(`Failed to update customer${errorMsg ? ': ' + errorMsg : ''}`);
+      console.error('Update customer error:', error);
     }
   };
 
@@ -93,13 +135,20 @@ export default function CustomersPage() {
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold">{t('nav.customers')}</h1>
         <LargeButton onClick={() => setShowCreateDialog(true)}>
-          <UserPlus className="mr-2 h-5 w-5" />
+          <Users className="mr-2 h-5 w-5" />
           {t('customers.add_customer')}
         </LargeButton>
       </div>
 
-      {overdueCustomers.length > 0 && (
-        <OverdueCreditAlert variant="default" count={overdueCustomers.length} />
+      {delinquentSales.length > 0 && (
+        <Alert variant="destructive">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription>
+            {delinquentSales.length === 1
+              ? `${delinquentSales.length} cliente con morosidad mayor a 15 días`
+              : `${delinquentSales.length} clientes con morosidad mayor a 15 días`}
+          </AlertDescription>
+        </Alert>
       )}
 
       <Card>
@@ -115,31 +164,48 @@ export default function CustomersPage() {
                 <TableRow>
                   <TableHead>{t('customers.name')}</TableHead>
                   <TableHead>{t('customers.contact')}</TableHead>
-                  <TableHead>{t('customers.debt')}</TableHead>
-                  <TableHead>{t('customers.status')}</TableHead>
+                  <TableHead className="text-right">{t('customers.debt')}</TableHead>
                   <TableHead className="text-right">{t('action.actions')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {customers.map((customer) => {
-                  const hasOverdue = overdueCustomers.some(c => c.id === customer.id);
+                  const isDelinquent = delinquentCustomerNames.has(customer.name);
                   return (
                     <TableRow key={customer.id}>
-                      <TableCell className="font-medium">{customer.name}</TableCell>
+                      <TableCell className="font-medium">
+                        <div className="flex items-center gap-2">
+                          {customer.name}
+                          {isDelinquent && (
+                            <Badge variant="destructive" className="text-xs">
+                              {t('customers.delinquent')}
+                            </Badge>
+                          )}
+                        </div>
+                      </TableCell>
                       <TableCell>{customer.contactInfo || '-'}</TableCell>
-                      <TableCell>{formatUSD(customer.debtUsd)}</TableCell>
-                      <TableCell>
-                        {hasOverdue && <OverdueCreditAlert variant="inline" />}
+                      <TableCell className="text-right font-medium">
+                        {formatUSD(customer.debtUsd)}
                       </TableCell>
                       <TableCell className="text-right">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleViewCustomer(customer.id)}
-                        >
-                          <Eye className="mr-2 h-4 w-4" />
-                          {t('action.view')}
-                        </Button>
+                        <div className="flex justify-end gap-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleEditCustomer(customer)}
+                          >
+                            <Edit className="mr-2 h-4 w-4" />
+                            {t('action.edit')}
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleViewCustomer(customer.id)}
+                          >
+                            <Eye className="mr-2 h-4 w-4" />
+                            {t('action.view')}
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   );
@@ -150,6 +216,7 @@ export default function CustomersPage() {
         </CardContent>
       </Card>
 
+      {/* Create Dialog */}
       <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
         <DialogContent>
           <DialogHeader>
@@ -210,6 +277,70 @@ export default function CustomersPage() {
                 disabled={!isAuthenticated || createCustomer.isPending}
               >
                 {createCustomer.isPending ? t('action.creating') : t('action.create')}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Dialog */}
+      <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t('customers.edit_title')}</DialogTitle>
+          </DialogHeader>
+
+          <form onSubmit={handleUpdateCustomer} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit-name">{t('customers.name')}</Label>
+              <Input
+                id="edit-name"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                placeholder={t('customers.name_placeholder')}
+                disabled={!isAuthenticated}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="edit-contactInfo">{t('customers.contact')}</Label>
+              <Input
+                id="edit-contactInfo"
+                value={formData.contactInfo}
+                onChange={(e) => setFormData({ ...formData, contactInfo: e.target.value })}
+                placeholder={t('customers.contact_placeholder')}
+                disabled={!isAuthenticated}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="edit-debtUsd">{t('customers.debt')}</Label>
+              <Input
+                id="edit-debtUsd"
+                type="number"
+                step="0.01"
+                value={formData.debtUsd}
+                onChange={(e) => setFormData({ ...formData, debtUsd: e.target.value })}
+                disabled={!isAuthenticated}
+              />
+            </div>
+
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setShowEditDialog(false);
+                  setEditingCustomer(null);
+                }}
+              >
+                {t('action.cancel')}
+              </Button>
+              <Button
+                type="submit"
+                disabled={!isAuthenticated || modifyCustomer.isPending}
+              >
+                {modifyCustomer.isPending ? t('action.updating') : t('action.update')}
               </Button>
             </DialogFooter>
           </form>

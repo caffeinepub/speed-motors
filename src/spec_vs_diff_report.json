@@ -1,68 +1,51 @@
 {
   "kind": "spec_vs_diff_report",
   "version": "1.0",
-  "generatedAt": "2026-02-16T01:10:47.176Z",
-  "summary": "The diff updates the frontend to check availability of three static artifacts (build ZIP, SOURCE_CODE.md, and a new source-code.zip) and adds packaging scripts intended to generate these artifacts. However, evidence is insufficient (and in places contradictory) that the artifacts are actually staged into the frontend static public folder so they are served at runtime from `/artifacts/...` in production builds. Additionally, substantial backend feature changes appear unrelated to the BuildRequest.",
+  "generatedAt": "2026-02-16T02:05:57.067Z",
+  "summary": "REQ-2 (download UI) appears to be implemented via a new ArtifactsDownloadDialog and integration into AppLayout, including availability/status handling and disabled downloads when unavailable. However, there is no diff evidence that the ZIP artifacts are produced/staged under frontend/public/artifacts/ (REQ-1), nor that DEPLOY_README.md was completed/updated (REQ-3). The diff also introduces several unrelated ERP changes (and a backend artifactUrl constant) that were not requested for this packaging-focused task.",
   "missing_requirements": [
     {
       "id": "REQ-1",
-      "requirement": "Ensure the files requested by the Dashboard exist as static assets at `/artifacts/app-build.zip` and `/artifacts/SOURCE_CODE.md` in production builds (served as real files, not HTML).",
-      "reason": "Frontend now checks `/artifacts/...` paths, but the packaging script evidence shows outputs written to `frontend/artifacts/` and a root-level `SOURCE_CODE.md`, with no clear (non-truncated) step that copies them into the runtime-served static folder (commonly `frontend/public/artifacts/`) so they will be reachable at `/artifacts/...` in production.",
+      "requirement": "Ensure the project produces ZIP artifacts and stages them as static files served by the frontend at /artifacts/ (generating frontend/public/artifacts/app-build.zip, frontend/public/artifacts/source-code.zip, and frontend/public/artifacts/SOURCE_CODE.md) so HEAD/GET to those paths returns 200 when generated.",
+      "reason": "The diff shows a frontend download dialog pointing to /artifacts/* URLs, but provides no evidence of changes to the packaging workflow, build scripts, or adding/staging the required files under frontend/public/artifacts/.",
       "evidence": [
-        "frontend/src/hooks/useStaticArtifactAvailability.ts",
-        "frontend/src/pages/DashboardPage.tsx",
-        "frontend/scripts/package-artifact.sh (creates/moves `frontend/artifacts/app-build.zip`; generates `SOURCE_CODE.md` at repo root)",
-        "frontend/scripts/README.md (claims staging into `frontend/public/artifacts/`, but not evidenced in script excerpt)"
-      ]
-    },
-    {
-      "id": "REQ-2",
-      "requirement": "Produce a downloadable source export ZIP containing the actual project source tree (backend sources and frontend sources/config needed to rebuild) and expose it as a static file under `/artifacts/` for download from the Dashboard.",
-      "reason": "The UI checks/downloads `/artifacts/source-code.zip`, and the packaging script starts creating a source ZIP, but the script content is truncated before confirming it (a) includes required rebuild config files and (b) is staged into the static public artifacts folder so it is actually served at `/artifacts/source-code.zip` in production.",
-      "evidence": [
-        "frontend/src/hooks/useStaticArtifactAvailability.ts (checks `/artifacts/source-code.zip`)",
-        "frontend/src/pages/DashboardPage.tsx (downloads `/artifacts/source-code.zip`)",
-        "frontend/scripts/package-artifact.sh (\"Creating full source code package...\"; truncated before showing final zip output path/copy and full inclusion list)"
+        "frontend/src/components/artifacts/ArtifactsDownloadDialog.tsx"
       ]
     },
     {
       "id": "REQ-3",
-      "requirement": "Update packaging workflow scripts/docs so running the documented command produces (1) deployable build ZIP, (2) `SOURCE_CODE.md`, (3) full source-code ZIP, and stages/copies them into the frontend static public artifacts folder served at `/artifacts/...`.",
-      "reason": "Docs state artifacts are staged into `frontend/public/artifacts/`, but the visible portion of `package-artifact.sh` writes the build ZIP to `frontend/artifacts/app-build.zip` and shows no clear step copying artifacts into `frontend/public/artifacts/`. The remainder of the script is truncated, so staging cannot be verified.",
-      "evidence": [
-        "frontend/scripts/README.md (states staging into `frontend/public/artifacts/`)",
-        "frontend/scripts/package-artifact.sh (moves build zip to `frontend/artifacts/app-build.zip`; no shown copy to `frontend/public/artifacts/` before truncation)"
-      ]
-    },
-    {
-      "id": "REQ-3",
-      "requirement": "Ensure `frontend/artifacts/DEPLOY_README.md` and `frontend/scripts/README.md` clearly state what each download contains (build ZIP vs source-code ZIP vs SOURCE_CODE.md) and where they appear inside the extracted ZIP(s).",
-      "reason": "`frontend/scripts/README.md` describes the three artifacts, but `frontend/artifacts/DEPLOY_README.md` is truncated and does not show the required detailed descriptions/paths inside extracted ZIP(s), so compliance cannot be confirmed from the diff summary.",
-      "evidence": [
-        "frontend/scripts/README.md",
-        "frontend/artifacts/DEPLOY_README.md (truncated)"
-      ]
+      "requirement": "Complete frontend/artifacts/DEPLOY_README.md with step-by-step English deployment instructions and ensure it is included at the root of app-build.zip.",
+      "reason": "No file diff evidence shows modifications/additions to frontend/artifacts/DEPLOY_README.md or any packaging inclusion logic for it.",
+      "evidence": []
     }
   ],
   "hallucinated_features": [
     {
-      "description": "Large, unrelated backend refactor/additions (inventory/sales/customers/suppliers/closures, blob storage mixin, authorization/access control) not tied to artifact download or source export.",
-      "reason": "BuildRequest focuses on static artifact availability, source ZIP export, and packaging scripts; no backend feature expansion is requested.",
+      "description": "Added/modified backend behavior related to an artifact URL constant (artifactUrl = \"/artifacts/somosora_project.zip\") that is not part of the requested artifacts (app-build.zip, source-code.zip, SOURCE_CODE.md).",
+      "reason": "The BuildRequest does not request backend changes or a different artifact filename/path; it specifically names app-build.zip and source-code.zip (plus SOURCE_CODE.md).",
       "evidence": [
         "backend/main.mo"
       ]
+    },
+    {
+      "description": "Broad unrelated ERP UI/logic changes (inventory page behavior, auth gating, export/search enhancements, multiple module updates) beyond adding an artifacts download UI.",
+      "reason": "Non-goals/constraints indicate not changing business logic unrelated to packaging/downloading artifacts; the diff summary indicates many additional changes across modules.",
+      "evidence": [
+        "frontend/src/pages/InventoryPage.tsx",
+        "frontend/src/hooks/useQueries.ts",
+        "frontend-file-summaries.txt"
+      ]
     }
   ],
-  "confidence": 0.64,
+  "confidence": 0.71,
   "changed_files": [
     "backend/main.mo",
     "frontend-file-summaries.txt",
-    "frontend/artifacts/DEPLOY_README.md",
-    "frontend/scripts/README.md",
-    "frontend/scripts/generate-source-document.sh",
-    "frontend/scripts/package-artifact.sh",
-    "frontend/src/hooks/useStaticArtifactAvailability.ts",
-    "frontend/src/pages/DashboardPage.tsx",
+    "frontend/src/components/artifacts/ArtifactsDownloadDialog.tsx",
+    "frontend/src/components/layout/AppLayout.tsx",
+    "frontend/src/hooks/useQueries.ts",
+    "frontend/src/lib/i18n.ts",
+    "frontend/src/pages/InventoryPage.tsx",
     "project_state.json"
   ]
 }

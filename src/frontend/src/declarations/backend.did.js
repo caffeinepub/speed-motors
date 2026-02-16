@@ -127,6 +127,19 @@ export const TopSearchedProduct = IDL.Record({
   'searchTerm' : IDL.Text,
   'searchCount' : IDL.Nat,
 });
+export const IntelligenceSearchResult = IDL.Variant({
+  'inventoryItem' : InventoryItem,
+  'customer' : Customer,
+  'supplier' : Supplier,
+  'sale' : Sale,
+});
+export const UpdateSalePayload = IDL.Record({
+  'customerName' : IDL.Opt(IDL.Text),
+  'dueDate' : IDL.Opt(Time),
+  'totalAmountUsd' : IDL.Opt(IDL.Float64),
+  'itemsSold' : IDL.Opt(IDL.Vec(InventoryItem)),
+  'isCreditSale' : IDL.Opt(IDL.Bool),
+});
 export const RecordSearchEventPayload = IDL.Record({
   'searchTerm' : IDL.Text,
   'timestamp' : Time,
@@ -216,7 +229,7 @@ export const idlService = IDL.Service({
       [IDL.Vec(Sale)],
       ['query'],
     ),
-  'getBuildArtifacts' : IDL.Func([], [IDL.Text], []),
+  'getBuildArtifactsZipUrls' : IDL.Func([], [IDL.Vec(IDL.Text)], []),
   'getCallerUserProfile' : IDL.Func([], [IDL.Opt(UserProfile)], ['query']),
   'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
   'getCashboxTotals' : IDL.Func(
@@ -256,6 +269,11 @@ export const idlService = IDL.Service({
       ['query'],
     ),
   'hasDelinquentSales' : IDL.Func([IDL.Vec(Sale)], [IDL.Bool], ['query']),
+  'intelligenceSearch' : IDL.Func(
+      [IDL.Text],
+      [IDL.Vec(IntelligenceSearchResult)],
+      ['query'],
+    ),
   'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
   'listCashboxEntries' : IDL.Func([], [IDL.Vec(CashboxEntry)], ['query']),
   'listClosures' : IDL.Func([], [IDL.Vec(Closure)], ['query']),
@@ -264,6 +282,17 @@ export const idlService = IDL.Service({
   'listExchangeRates' : IDL.Func([], [IDL.Vec(ExchangeRate)], ['query']),
   'listInventory' : IDL.Func([], [IDL.Vec(InventoryItem)], ['query']),
   'listSuppliers' : IDL.Func([], [IDL.Vec(Supplier)], ['query']),
+  'modifyCustomer' : IDL.Func(
+      [IDL.Text, IDL.Text, IDL.Text, IDL.Float64],
+      [Customer],
+      [],
+    ),
+  'modifySale' : IDL.Func([IDL.Text, UpdateSalePayload], [Sale], []),
+  'modifySupplier' : IDL.Func(
+      [IDL.Text, IDL.Text, IDL.Text, IDL.Text],
+      [Supplier],
+      [],
+    ),
   'postSale' : IDL.Func(
       [IDL.Text, IDL.Text, IDL.Vec(InventoryItem), IDL.Float64, IDL.Bool],
       [],
@@ -401,6 +430,19 @@ export const idlFactory = ({ IDL }) => {
     'searchTerm' : IDL.Text,
     'searchCount' : IDL.Nat,
   });
+  const IntelligenceSearchResult = IDL.Variant({
+    'inventoryItem' : InventoryItem,
+    'customer' : Customer,
+    'supplier' : Supplier,
+    'sale' : Sale,
+  });
+  const UpdateSalePayload = IDL.Record({
+    'customerName' : IDL.Opt(IDL.Text),
+    'dueDate' : IDL.Opt(Time),
+    'totalAmountUsd' : IDL.Opt(IDL.Float64),
+    'itemsSold' : IDL.Opt(IDL.Vec(InventoryItem)),
+    'isCreditSale' : IDL.Opt(IDL.Bool),
+  });
   const RecordSearchEventPayload = IDL.Record({
     'searchTerm' : IDL.Text,
     'timestamp' : Time,
@@ -490,7 +532,7 @@ export const idlFactory = ({ IDL }) => {
         [IDL.Vec(Sale)],
         ['query'],
       ),
-    'getBuildArtifacts' : IDL.Func([], [IDL.Text], []),
+    'getBuildArtifactsZipUrls' : IDL.Func([], [IDL.Vec(IDL.Text)], []),
     'getCallerUserProfile' : IDL.Func([], [IDL.Opt(UserProfile)], ['query']),
     'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
     'getCashboxTotals' : IDL.Func(
@@ -530,6 +572,11 @@ export const idlFactory = ({ IDL }) => {
         ['query'],
       ),
     'hasDelinquentSales' : IDL.Func([IDL.Vec(Sale)], [IDL.Bool], ['query']),
+    'intelligenceSearch' : IDL.Func(
+        [IDL.Text],
+        [IDL.Vec(IntelligenceSearchResult)],
+        ['query'],
+      ),
     'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
     'listCashboxEntries' : IDL.Func([], [IDL.Vec(CashboxEntry)], ['query']),
     'listClosures' : IDL.Func([], [IDL.Vec(Closure)], ['query']),
@@ -538,6 +585,17 @@ export const idlFactory = ({ IDL }) => {
     'listExchangeRates' : IDL.Func([], [IDL.Vec(ExchangeRate)], ['query']),
     'listInventory' : IDL.Func([], [IDL.Vec(InventoryItem)], ['query']),
     'listSuppliers' : IDL.Func([], [IDL.Vec(Supplier)], ['query']),
+    'modifyCustomer' : IDL.Func(
+        [IDL.Text, IDL.Text, IDL.Text, IDL.Float64],
+        [Customer],
+        [],
+      ),
+    'modifySale' : IDL.Func([IDL.Text, UpdateSalePayload], [Sale], []),
+    'modifySupplier' : IDL.Func(
+        [IDL.Text, IDL.Text, IDL.Text, IDL.Text],
+        [Supplier],
+        [],
+      ),
     'postSale' : IDL.Func(
         [IDL.Text, IDL.Text, IDL.Vec(InventoryItem), IDL.Float64, IDL.Bool],
         [],

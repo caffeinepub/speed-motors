@@ -1,40 +1,93 @@
 {
   "schemaVersion": "1.0.0",
   "projectStateVersion": 3,
-  "summary": "New project",
-  "architectural_notes": [],
-  "known_issues": [
-    "Provided ZIP does not download / does not include the website source code as expected."
+  "summary": "Build a complete local ERP system for 'Speed Motors' (motorcycle parts) with inventory/stock management, multi-currency cash register, sales/credits tracking, full CRUD, backup export, and deliver the project as a downloadable ZIP.",
+  "architectural_notes": [
+    "Target deployment: run as a local server on the user's PC without external platforms.",
+    "Preferred stack requested by user: Python Flask backend + SQLite single-file database; HTML templates + static CSS/JS."
   ],
-  "isFixRequest": true,
+  "known_issues": [
+    "Platform/tooling limitation noted: assistant claims it cannot generate Flask/SQLite projects or ZIPs unless using Motoko + React (potential delivery mismatch with requested stack)."
+  ],
+  "isFixRequest": false,
   "existing_features": [
     {
-      "id": "feature-make-the-in-app-download-links-for-build-artifacts-work-by-ensuring-the-files-requested-by-the-dashboard-exist-as-static-assets-at-artifacts-app-build-zip-and-artifacts-source-code-md-in-production-builds",
-      "title": "Make the in-app download links for build artifacts work by ensuring the files requested by the Dashboard exist as static assets at `/artifacts/app-build.zip` and `/artifacts/SOURCE_CODE.md` in production builds.",
-      "reqIds": [
-        "REQ-1"
-      ],
-      "version": 1
-    },
-    {
-      "id": "feature-add-a-downloadable-zip-export-that-contains-the-actual-project-source-tree-at-minimum-backend-sources-and-frontend-sources-config-needed-to-rebuild-and-expose-it-as-a-static-file-under-artifacts-so-users-can-download-the-full-website-source-code-directly-from-the-app",
-      "title": "Add a downloadable ZIP export that contains the actual project source tree (at minimum: `backend/` sources and `frontend/` sources/config needed to rebuild), and expose it as a static file under `/artifacts/` so users can download the full website source code directly from the app.",
+      "id": "feature-add-a-user-visible-download-ui-in-the-speed-motors-erp-that-lets-the-user-download-the-generated-zip-files-app-build-zip-and-source-code-zip-and-the-source-code-md-file-with-clear-statuses-when-files-are-not-yet-available",
+      "title": "Add a user-visible download UI in the Speed Motors ERP that lets the user download the generated ZIP files (app-build.zip and source-code.zip) and the SOURCE_CODE.md file, with clear statuses when files are not yet available.",
       "reqIds": [
         "REQ-2"
       ],
       "version": 1
+    }
+  ],
+  "new_feature_requests": [
+    {
+      "id": "AR-1",
+      "summary": "Create full ERP for Speed Motors (motorcycle parts) using Python Flask backend and SQLite database, runnable locally.",
+      "reqIds": [],
+      "status": "pending"
     },
     {
-      "id": "feature-update-the-local-packaging-workflow-scripts-e-g-frontend-scripts-package-artifact-sh-and-related-docs-so-that-running-the-documented-command-produces-1-the-deployable-build-zip-2-source-code-md-and-3-the-full-source-code-zip-and-stages-copies-these-artifacts-into-the-frontend-static-public-artifacts-folder-so-the-app-can-serve-them-at-artifacts",
-      "title": "Update the local packaging workflow scripts (e.g., `frontend/scripts/package-artifact.sh` and related docs) so that running the documented command produces: (1) the deployable build ZIP, (2) `SOURCE_CODE.md`, and (3) the full source-code ZIP, and stages/copies these artifacts into the frontend static public artifacts folder so the app can serve them at `/artifacts/...`.",
+      "id": "AR-2",
+      "summary": "Inventory/stock module: optional photo/description, current stock, minimum stock with red alerts, purchase price USD, auto sale price from configurable margin.",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-3",
+      "summary": "Multi-currency cash register: automatic conversion to VES (BCV) and COP using an exchange-rate table editable daily.",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-4",
+      "summary": "Sales and credits: invoices with multiple products; 'Pay Now' posts to cash; 'On Credit' adds to debtors with 15-day overdue alert; apply similarly for suppliers.",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-5",
+      "summary": "Full CRUD: all records must have Edit and Delete actions.",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-6",
+      "summary": "Backup/export button to export the entire database to Excel/CSV.",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-7",
+      "summary": "Deliver complete project file structure (app.py, templates/, static/ with CSS/JS).",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-8",
+      "summary": "Package and provide a downloadable ZIP of the built ERP project via chat/tooling.",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-9",
+      "summary": "Ensure the project produces ZIP artifacts for the Speed Motors ERP and stages them as static files served by the frontend at /artifacts/ so the user can download them from the running app.",
+      "reqIds": [
+        "REQ-1"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-11",
+      "summary": "Complete the included DEPLOY_README.md so that the ZIP build artifact has usable, English deployment instructions for extracting and deploying the packaged build.",
       "reqIds": [
         "REQ-3"
       ],
-      "version": 1
+      "status": "pending"
     }
   ],
-  "new_feature_requests": [],
-  "projectName": "Fix build artifact download and provide full source-code ZIP export",
+  "gameProjectType": "none",
+  "projectName": "Speed Motors",
   "clarification_mode": "instant",
   "clarification_rounds": 0
 }

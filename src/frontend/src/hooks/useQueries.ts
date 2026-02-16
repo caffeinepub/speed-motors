@@ -7,6 +7,7 @@ import type {
   ExchangeRate,
   Customer,
   Sale,
+  UpdateSalePayload,
   CashboxEntry,
   Variant__in_out,
   TopSearchedProduct,
@@ -16,6 +17,7 @@ import type {
   CreateSupplierPayload,
   Closure,
   CreateClosurePayload,
+  IntelligenceSearchResult,
 } from '@/backend';
 
 // Inventory Queries
@@ -83,6 +85,17 @@ export function useSearchProducts() {
     mutationFn: async (searchQuery: string) => {
       if (!actor) throw new Error('Actor not available');
       return actor.searchProducts(searchQuery);
+    },
+  });
+}
+
+export function useIntelligenceSearch() {
+  const { actor } = useActor();
+
+  return useMutation({
+    mutationFn: async (searchTerm: string) => {
+      if (!actor) throw new Error('Actor not available');
+      return actor.intelligenceSearch(searchTerm);
     },
   });
 }
@@ -184,7 +197,38 @@ export function useCreateCustomer() {
   });
 }
 
+export function useModifyCustomer() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, name, contactInfo, debtUsd }: { id: string; name: string; contactInfo: string; debtUsd: number }) => {
+      if (!actor) throw new Error('Actor not available');
+      return actor.modifyCustomer(id, name, contactInfo, debtUsd);
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['customers'] });
+      queryClient.invalidateQueries({ queryKey: ['customers', variables.id] });
+    },
+  });
+}
+
 // Sales Queries
+export function useSales() {
+  const { actor, isFetching } = useActor();
+
+  return useQuery<Sale[]>({
+    queryKey: ['sales'],
+    queryFn: async () => {
+      if (!actor) throw new Error('Actor not available');
+      // Backend doesn't have listSales, so we return empty array
+      // Sales are tracked via delinquent sales for now
+      return [];
+    },
+    enabled: !!actor && !isFetching,
+  });
+}
+
 export function usePostSale() {
   const { actor } = useActor();
   const queryClient = useQueryClient();
@@ -211,6 +255,24 @@ export function usePostSale() {
       queryClient.invalidateQueries({ queryKey: ['customers'] });
       queryClient.invalidateQueries({ queryKey: ['cashboxEntries'] });
       queryClient.invalidateQueries({ queryKey: ['delinquentSales'] });
+      queryClient.invalidateQueries({ queryKey: ['sales'] });
+    },
+  });
+}
+
+export function useModifySale() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, payload }: { id: string; payload: UpdateSalePayload }) => {
+      if (!actor) throw new Error('Actor not available');
+      return actor.modifySale(id, payload);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['sales'] });
+      queryClient.invalidateQueries({ queryKey: ['delinquentSales'] });
+      queryClient.invalidateQueries({ queryKey: ['customers'] });
     },
   });
 }
@@ -352,6 +414,22 @@ export function useCreateSupplier() {
   });
 }
 
+export function useModifySupplier() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, name, contactInfo, address }: { id: string; name: string; contactInfo: string; address: string }) => {
+      if (!actor) throw new Error('Actor not available');
+      return actor.modifySupplier(id, name, contactInfo, address);
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['suppliers'] });
+      queryClient.invalidateQueries({ queryKey: ['suppliers', variables.id] });
+    },
+  });
+}
+
 // Closure Queries
 export function useClosures() {
   const { actor, isFetching } = useActor();
@@ -385,12 +463,12 @@ export function useCreateClosure() {
 export function useBuildArtifactsInfo() {
   const { actor, isFetching } = useActor();
 
-  return useQuery<string>({
+  return useQuery<string[]>({
     queryKey: ['buildArtifacts'],
     queryFn: async () => {
       if (!actor) throw new Error('Actor not available');
       try {
-        return await actor.getBuildArtifacts();
+        return await actor.getBuildArtifactsZipUrls();
       } catch (error: any) {
         // Expected to fail on deployed versions
         throw new Error(error.message || 'Build artifacts not available');
