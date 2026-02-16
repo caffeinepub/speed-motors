@@ -1,14 +1,13 @@
 # Specification
 
 ## Summary
-**Goal:** Provide a repeatable workflow to build and package the current application into a single downloadable ZIP artifact (backend + frontend) with minimal deployment instructions.
+**Goal:** Fix artifact downloads in production and provide a working, downloadable full source-code ZIP export from within the app.
 
 **Planned changes:**
-- Add a single command/workflow that runs backend build, frontend production build, and packages outputs into exactly one ZIP in a dedicated artifacts/dist folder.
-- Include backend deploy outputs in the ZIP (e.g., wasm + candid/interface files produced by the normal build).
-- Include frontend production build output (static assets) in the ZIP.
-- Generate a short English README inside the ZIP with prerequisites and steps to deploy locally using `dfx`.
-- Ensure packaging failures emit clear, actionable console messages indicating which step failed (backend build, frontend build, or zipping).
-- Add a lightweight “Download ZIP” entry-point for developers/operators by clearly printing the ZIP filename and path after a successful run, and documenting the single command to re-run from a clean checkout.
+- Ensure the frontend serves static artifact files in production at `/artifacts/app-build.zip` and `/artifacts/SOURCE_CODE.md`, matching what the Dashboard download links expect.
+- Generate a new full source-code ZIP (including at minimum `backend/` and `frontend/` sources/config needed to rebuild) and publish it as a static asset under `/artifacts/` for in-app download.
+- Update the Dashboard “Full Project Export” area to only show download actions when the corresponding artifact URLs are actually reachable (consistent with `useStaticArtifactAvailability`).
+- Update the local packaging workflow scripts and related docs so the documented command produces and stages: the deployable build ZIP, `SOURCE_CODE.md`, and the full source-code ZIP into the frontend’s served `/artifacts/` folder, without breaking the existing `app-build.zip` output.
+- Clarify in `frontend/artifacts/DEPLOY_README.md` and `frontend/scripts/README.md` what each artifact contains and where files appear after extracting the ZIP(s) (English only).
 
-**User-visible outcome:** Developers/operators can run one documented command to produce a single ZIP artifact and easily find its printed location, then use the included README to deploy locally with `dfx`.
+**User-visible outcome:** Users can successfully download the build ZIP, `SOURCE_CODE.md`, and a full source-code ZIP from the Dashboard in production, with download buttons shown only when the files are available.

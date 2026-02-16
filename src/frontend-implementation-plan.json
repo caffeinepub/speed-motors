@@ -1,58 +1,88 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Frontend-local build artifact (ZIP) packaging workflow and discovery UI",
+  "title": "Fix artifact downloads and add full source ZIP export served from /artifacts",
   "requirements": [
     {
       "id": "REQ-1",
-      "summary": "Provide a repeatable local workflow (invoked from the frontend workspace) that builds backend + frontend outputs and packages them into a single ZIP containing build outputs and a short deployment README.",
+      "summary": "Ensure Dashboard download links map to real production static assets at /artifacts/app-build.zip and /artifacts/SOURCE_CODE.md, and only render when reachable.",
       "acceptanceCriteria": [
-        "Running the packaging workflow outputs exactly one ZIP file (e.g., in a dedicated /dist or /artifacts folder) without manual steps beyond invoking the workflow.",
-        "The ZIP contains backend build outputs needed to deploy the canister(s) (e.g., wasm + candid/interface files as produced by the normal build).",
-        "The ZIP contains the frontend production build output (static assets) as produced by the normal frontend build.",
-        "The ZIP includes a short README (English) with steps to deploy locally using dfx, including any environment/setup prerequisites.",
-        "If packaging fails, the workflow prints a clear, actionable error message identifying the failed step (backend build, frontend build, or zipping)."
+        "When the app is built and served, a browser request to `/artifacts/app-build.zip` returns HTTP 200 and downloads a ZIP file (not HTML).",
+        "When the app is built and served, a browser request to `/artifacts/SOURCE_CODE.md` returns HTTP 200 and downloads the markdown file.",
+        "The Dashboard 'Full Project Export' section shows download buttons only when the corresponding artifact paths are actually reachable (consistent with `useStaticArtifactAvailability`)."
       ],
       "file_operations": [
         {
-          "path": "frontend/scripts/package-artifact.sh",
-          "operation": "create",
-          "description": "Create a deterministic, repeatable packaging script (single command) that (1) runs the normal backend build from repo root, (2) runs the normal frontend production build, (3) assembles only required build outputs plus deployment README into a staging folder, and (4) produces exactly one ZIP at a fixed location (e.g., frontend/artifacts/app-build.zip). Ensure clear, actionable console errors for each step (backend build, frontend build, zipping) and a clear success message printing the final ZIP path + filename."
+          "path": "frontend/src/hooks/useStaticArtifactAvailability.ts",
+          "operation": "modify",
+          "description": "Keep availability checks aligned with what is actually shipped as static assets under the production-served `frontend/public/artifacts/` folder; ensure checks remain strictly tied to `/artifacts/app-build.zip` and `/artifacts/SOURCE_CODE.md` so the Dashboard only renders buttons when the files are reachable."
         },
         {
-          "path": "frontend/artifacts/DEPLOY_README.md",
-          "operation": "create",
-          "description": "Add a short English README to be included in the ZIP describing prerequisites and local deployment steps using dfx (from a clean checkout), including how to use the packaged backend outputs and how to serve/deploy the packaged frontend static build."
+          "path": "frontend/src/pages/DashboardPage.tsx",
+          "operation": "modify",
+          "description": "Ensure the 'Full Project Export' UI remains consistent with `useStaticArtifactAvailability` (only show the build ZIP and SOURCE_CODE.md download actions when the corresponding static paths are reachable) and keep all user-facing text in English."
         },
         {
-          "path": "frontend/artifacts/.gitkeep",
-          "operation": "create",
-          "description": "Ensure the artifacts folder exists in source control without committing generated ZIP outputs."
-        },
-        {
-          "path": "frontend/scripts/README.md",
-          "operation": "create",
-          "description": "Document the packaging workflow in English, including the single command to run (frontend/scripts/package-artifact.sh) and the expected output ZIP location/filename. This documentation must align with the script's printed messages."
+          "path": "frontend/public/artifacts/.gitkeep",
+          "operation": "modify",
+          "description": "Update the public artifacts directory placeholder (if needed) to ensure the folder remains tracked and is the canonical location that production builds serve at `/artifacts/...`."
         }
       ]
     },
     {
       "id": "REQ-2",
-      "summary": "Add a lightweight in-app developer/operator entry-point that clearly tells where to find the generated ZIP and (optionally) fetches build artifact info from the backend for easy retrieval.",
+      "summary": "Produce and expose a downloadable ZIP containing the editable project source tree as a static asset under /artifacts, with a clear download action in the Dashboard.",
       "acceptanceCriteria": [
-        "After a successful build/package run, the location and filename of the generated ZIP are printed clearly to the console/log output.",
-        "There is a single documented command (in English) to generate the ZIP from a clean checkout, suitable for re-trying if a prior attempt failed."
+        "A new source export ZIP is produced that includes the editable source files (not only compiled artifacts) so a developer can inspect/rebuild the project offline.",
+        "The source export ZIP is available as a static asset under `/artifacts/` and can be downloaded via the browser.",
+        "The Dashboard provides a clear download action for the source ZIP and the download succeeds in a production build."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/hooks/useQueries.ts",
+          "path": "frontend/scripts/package-artifact.sh",
           "operation": "modify",
-          "description": "Add a React Query hook (e.g., useBuildArtifactsInfo) that calls the existing backend capability getBuildArtifacts() and returns the resulting string for display in the UI (no backend changes)."
+          "description": "Extend the packaging workflow to create an additional source-code ZIP (containing at minimum `backend/` sources and `frontend/` sources/config needed to rebuild, while excluding build outputs and dependencies) and stage/copy it into `frontend/public/artifacts/` so it is served in production under `/artifacts/`."
+        },
+        {
+          "path": "frontend/src/hooks/useStaticArtifactAvailability.ts",
+          "operation": "modify",
+          "description": "Add availability checking for the new source export ZIP under `/artifacts/` (in addition to existing checks), and return a boolean that the Dashboard can use to conditionally render the new download action."
         },
         {
           "path": "frontend/src/pages/DashboardPage.tsx",
           "operation": "modify",
-          "description": "Add a small 'Download ZIP (Developers/Operators)' card/section (English text) explaining the single command to generate the ZIP and the expected output path/filename. Include a button to fetch and display backend-reported artifact info (via the new hook) when available. Use existing shadcn-ui components (e.g., Card, Button, Alert/Dialog) to keep UI consistent—verify the component's usage instructions before implementing."
+          "description": "Add a new download action in the 'Full Project Export' section for the full source-code ZIP under `/artifacts/`, and only show it when the corresponding availability flag from `useStaticArtifactAvailability` is true; keep all user-facing text in English."
+        }
+      ]
+    },
+    {
+      "id": "REQ-3",
+      "summary": "Update local packaging workflow scripts and docs to generate and stage all downloadable artifacts into the public /artifacts static folder without breaking existing app-build.zip output.",
+      "acceptanceCriteria": [
+        "After running the packaging workflow locally, all downloadable artifacts are present in the location served by the frontend at runtime (the `/artifacts/` path).",
+        "`frontend/artifacts/DEPLOY_README.md` and `frontend/scripts/README.md` clearly state what each download contains (build ZIP vs source-code ZIP vs SOURCE_CODE.md) and where they appear inside the extracted ZIP(s).",
+        "The packaging workflow does not remove or break the existing `app-build.zip` output; it remains generated as before."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/scripts/package-artifact.sh",
+          "operation": "modify",
+          "description": "Update the script so that running the documented command produces: (1) the deployable build ZIP (`app-build.zip`) as before, (2) `SOURCE_CODE.md`, and (3) the new full source-code ZIP; then copy all three artifacts into `frontend/public/artifacts/` so they are served at runtime from `/artifacts/...`."
+        },
+        {
+          "path": "frontend/scripts/generate-source-document.sh",
+          "operation": "modify",
+          "description": "Ensure the SOURCE_CODE.md generation remains stable and is compatible with the updated packaging workflow (including consistent output location and naming) so it can be staged into `frontend/public/artifacts/` for production download."
+        },
+        {
+          "path": "frontend/artifacts/DEPLOY_README.md",
+          "operation": "modify",
+          "description": "Clarify, in English, what each downloadable artifact contains (deployable build ZIP vs full source-code ZIP vs SOURCE_CODE.md) and where they appear after extraction, including where the source export ZIP is located and how it differs from compiled build outputs."
+        },
+        {
+          "path": "frontend/scripts/README.md",
+          "operation": "modify",
+          "description": "Update the workflow documentation (in English) to describe the updated packaging command outputs and explicitly state that the artifacts are staged into the frontend-served static folder so they are reachable via `/artifacts/...` in production."
         }
       ]
     }

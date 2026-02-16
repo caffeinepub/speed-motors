@@ -1,60 +1,72 @@
 {
   "kind": "build_request",
-  "title": "Generate a downloadable ZIP build artifact for the deployed application",
-  "priority": "normal",
+  "title": "Fix build artifact download and provide full source-code ZIP export",
+  "priority": "high",
   "requirements": [
     {
       "id": "REQ-1",
-      "text": "Add a repeatable build-and-package workflow that produces a single downloadable ZIP artifact of the current application, including both backend and frontend build outputs and minimal deployment instructions.",
-      "target": "both",
+      "text": "Make the in-app download links for build artifacts work by ensuring the files requested by the Dashboard exist as static assets at `/artifacts/app-build.zip` and `/artifacts/SOURCE_CODE.md` in production builds.",
+      "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-1",
-          "msg-2",
-          "msg-3",
-          "msg-7"
+          "msg-4"
         ],
         "quotes": [
-          "Everything is built and deployed — would you like me to prepare the downloadable ZIP for you now?",
-          "SI POR FAVOR"
+          "SI PORQUE EL ZIP QUE ME MUESTRAS NO DESCARGA EL COGIGO FUENTE DE LA PAGINA"
         ]
       },
       "acceptanceCriteria": [
-        "Running the packaging workflow outputs exactly one ZIP file (e.g., in a dedicated /dist or /artifacts folder) without manual steps beyond invoking the workflow.",
-        "The ZIP contains backend build outputs needed to deploy the canister(s) (e.g., wasm + candid/interface files as produced by the normal build).",
-        "The ZIP contains the frontend production build output (static assets) as produced by the normal frontend build.",
-        "The ZIP includes a short README (English) with steps to deploy locally using dfx, including any environment/setup prerequisites.",
-        "If packaging fails, the workflow prints a clear, actionable error message identifying the failed step (backend build, frontend build, or zipping)."
+        "When the app is built and served, a browser request to `/artifacts/app-build.zip` returns HTTP 200 and downloads a ZIP file (not HTML).",
+        "When the app is built and served, a browser request to `/artifacts/SOURCE_CODE.md` returns HTTP 200 and downloads the markdown file.",
+        "The Dashboard 'Full Project Export' section shows download buttons only when the corresponding artifact paths are actually reachable (consistent with `useStaticArtifactAvailability`)."
       ]
     },
     {
       "id": "REQ-2",
-      "text": "Add a lightweight \"Download ZIP\" build artifact entry-point for developers/operators (English text) that makes it easy to locate and retrieve the generated ZIP file after a successful build.",
-      "target": "unknown",
+      "text": "Add a downloadable ZIP export that contains the actual project source tree (at minimum: `backend/` sources and `frontend/` sources/config needed to rebuild), and expose it as a static file under `/artifacts/` so users can download the full website source code directly from the app.",
+      "target": "both",
       "source": {
         "messageIds": [
-          "msg-1",
-          "msg-2",
-          "msg-7"
+          "msg-4"
         ],
         "quotes": [
-          "would you like me to prepare the downloadable ZIP for you now?",
-          "SI POR FAVOR"
+          "SI PORQUE EL ZIP QUE ME MUESTRAS NO DESCARGA EL COGIGO FUENTE DE LA PAGINA"
         ]
       },
       "acceptanceCriteria": [
-        "After a successful build/package run, the location and filename of the generated ZIP are printed clearly to the console/log output.",
-        "There is a single documented command (in English) to generate the ZIP from a clean checkout, suitable for re-trying if a prior attempt failed."
+        "A new source export ZIP is produced that includes the editable source files (not only compiled artifacts) so a developer can inspect/rebuild the project offline.",
+        "The source export ZIP is available as a static asset under `/artifacts/` and can be downloaded via the browser.",
+        "The Dashboard provides a clear download action for the source ZIP and the download succeeds in a production build."
+      ]
+    },
+    {
+      "id": "REQ-3",
+      "text": "Update the local packaging workflow scripts (e.g., `frontend/scripts/package-artifact.sh` and related docs) so that running the documented command produces: (1) the deployable build ZIP, (2) `SOURCE_CODE.md`, and (3) the full source-code ZIP, and stages/copies these artifacts into the frontend static public artifacts folder so the app can serve them at `/artifacts/...`.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-4"
+        ],
+        "quotes": [
+          "SI PORQUE EL ZIP QUE ME MUESTRAS NO DESCARGA EL COGIGO FUENTE DE LA PAGINA"
+        ]
+      },
+      "acceptanceCriteria": [
+        "After running the packaging workflow locally, all downloadable artifacts are present in the location served by the frontend at runtime (the `/artifacts/` path).",
+        "`frontend/artifacts/DEPLOY_README.md` and `frontend/scripts/README.md` clearly state what each download contains (build ZIP vs source-code ZIP vs SOURCE_CODE.md) and where they appear inside the extracted ZIP(s).",
+        "The packaging workflow does not remove or break the existing `app-build.zip` output; it remains generated as before."
       ]
     }
   ],
   "constraints": [
-    "Backend must remain a single Motoko actor in backend/main.mo; only add backend/migration.mo if state schema changes require it.",
-    "Do not edit files under frontend/src/components/ui, frontend/src/main.tsx, frontend/src/hooks/useInternetIdentity.ts(x), or frontend/src/hooks/useActor.ts."
+    "Do not edit files under frontend/src/hooks/useInternetIdentity.ts, frontend/src/hooks/useInternetIdentity.tsx, frontend/src/hooks/useActor.ts, frontend/src/main.tsx, or anything under frontend/src/components/ui (compose them instead).",
+    "Backend must remain a single Motoko actor in backend/main.mo; only add backend changes if required to support the source export request.",
+    "All user-facing text in UI/docs added or changed must be in English."
   ],
   "nonGoals": [
-    "Do not add new product features to the ERP (inventory/sales/customers/etc.) beyond enabling ZIP artifact generation.",
-    "Do not introduce external databases, cloud build services, or third-party authentication providers."
+    "Adding third-party storage, external databases, or external file hosting for artifacts.",
+    "Adding new authentication providers beyond Internet Identity.",
+    "Implementing real-time transfer mechanisms (e.g., WebSockets) for downloads."
   ],
   "imageRequirements": {
     "required": [],

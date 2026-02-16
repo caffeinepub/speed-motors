@@ -4,36 +4,37 @@
   "summary": "New project",
   "architectural_notes": [],
   "known_issues": [
-    "Automated build/ZIP generation failed during the last attempt; may need retry or simplification."
+    "Provided ZIP does not download / does not include the website source code as expected."
   ],
-  "isFixRequest": false,
+  "isFixRequest": true,
   "existing_features": [
     {
-      "id": "feature-add-a-repeatable-build-and-package-workflow-that-produces-a-single-downloadable-zip-artifact-of-the-current-application-including-both-backend-and-frontend-build-outputs-and-minimal-deployment-instructions",
-      "title": "Add a repeatable build-and-package workflow that produces a single downloadable ZIP artifact of the current application, including both backend and frontend build outputs and minimal deployment instructions.",
+      "id": "feature-make-the-in-app-download-links-for-build-artifacts-work-by-ensuring-the-files-requested-by-the-dashboard-exist-as-static-assets-at-artifacts-app-build-zip-and-artifacts-source-code-md-in-production-builds",
+      "title": "Make the in-app download links for build artifacts work by ensuring the files requested by the Dashboard exist as static assets at `/artifacts/app-build.zip` and `/artifacts/SOURCE_CODE.md` in production builds.",
       "reqIds": [
         "REQ-1"
       ],
       "version": 1
     },
     {
-      "id": "feature-add-a-lightweight-download-zip-build-artifact-entry-point-for-developers-operators-english-text-that-makes-it-easy-to-locate-and-retrieve-the-generated-zip-file-after-a-successful-build",
-      "title": "Add a lightweight \"Download ZIP\" build artifact entry-point for developers/operators (English text) that makes it easy to locate and retrieve the generated ZIP file after a successful build.",
+      "id": "feature-add-a-downloadable-zip-export-that-contains-the-actual-project-source-tree-at-minimum-backend-sources-and-frontend-sources-config-needed-to-rebuild-and-expose-it-as-a-static-file-under-artifacts-so-users-can-download-the-full-website-source-code-directly-from-the-app",
+      "title": "Add a downloadable ZIP export that contains the actual project source tree (at minimum: `backend/` sources and `frontend/` sources/config needed to rebuild), and expose it as a static file under `/artifacts/` so users can download the full website source code directly from the app.",
       "reqIds": [
         "REQ-2"
       ],
       "version": 1
-    }
-  ],
-  "new_feature_requests": [
+    },
     {
-      "id": "AR-1",
-      "summary": "Prepare a downloadable ZIP build artifact for the deployed application",
-      "reqIds": [],
-      "status": "in_progress"
+      "id": "feature-update-the-local-packaging-workflow-scripts-e-g-frontend-scripts-package-artifact-sh-and-related-docs-so-that-running-the-documented-command-produces-1-the-deployable-build-zip-2-source-code-md-and-3-the-full-source-code-zip-and-stages-copies-these-artifacts-into-the-frontend-static-public-artifacts-folder-so-the-app-can-serve-them-at-artifacts",
+      "title": "Update the local packaging workflow scripts (e.g., `frontend/scripts/package-artifact.sh` and related docs) so that running the documented command produces: (1) the deployable build ZIP, (2) `SOURCE_CODE.md`, and (3) the full source-code ZIP, and stages/copies these artifacts into the frontend static public artifacts folder so the app can serve them at `/artifacts/...`.",
+      "reqIds": [
+        "REQ-3"
+      ],
+      "version": 1
     }
   ],
-  "projectName": "Generate a downloadable ZIP build artifact for the deployed application",
+  "new_feature_requests": [],
+  "projectName": "Fix build artifact download and provide full source-code ZIP export",
   "clarification_mode": "instant",
   "clarification_rounds": 0
 }

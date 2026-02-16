@@ -1,43 +1,59 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-02-15T18:54:24.611Z",
+  "generatedAt": "2026-02-16T01:10:47.178Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
   },
   "requirements": {
-    "total": 2,
-    "implemented": 2,
+    "total": 3,
+    "implemented": 3,
     "items": [
       {
         "id": "REQ-1",
-        "summary": "Add a repeatable build-and-package workflow that produces a single downloadable ZIP artifact of the current application, including both backend and frontend build outputs and minimal deployment instructions.",
+        "summary": "Make the in-app download links for build artifacts work by ensuring the files requested by the Dashboard exist as static assets at `/artifacts/app-build.zip` and `/artifacts/SOURCE_CODE.md` in production builds.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/scripts/package-artifact.sh",
-          "frontend/artifacts/DEPLOY_README.md",
-          "frontend/artifacts/.gitkeep",
-          "frontend/scripts/README.md"
+          "frontend/src/hooks/useStaticArtifactAvailability.ts",
+          "frontend/src/pages/DashboardPage.tsx",
+          "frontend/public/artifacts/.gitkeep"
         ],
         "matchedFiles": [
-          "frontend/scripts/package-artifact.sh",
-          "frontend/artifacts/DEPLOY_README.md",
-          "frontend/artifacts/.gitkeep",
-          "frontend/scripts/README.md"
+          "frontend/src/hooks/useStaticArtifactAvailability.ts",
+          "frontend/src/pages/DashboardPage.tsx"
         ]
       },
       {
         "id": "REQ-2",
-        "summary": "Add a lightweight \"Download ZIP\" build artifact entry-point for developers/operators (English text) that makes it easy to locate and retrieve the generated ZIP file after a successful build.",
+        "summary": "Add a downloadable ZIP export that contains the actual project source tree (at minimum: `backend/` sources and `frontend/` sources/config needed to rebuild), and expose it as a static file under `/artifacts/` so users can download the full website source code directly from the app.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/hooks/useQueries.ts",
+          "frontend/scripts/package-artifact.sh",
+          "frontend/src/hooks/useStaticArtifactAvailability.ts",
           "frontend/src/pages/DashboardPage.tsx"
         ],
         "matchedFiles": [
-          "frontend/src/hooks/useQueries.ts",
+          "frontend/scripts/package-artifact.sh",
+          "frontend/src/hooks/useStaticArtifactAvailability.ts",
           "frontend/src/pages/DashboardPage.tsx"
+        ]
+      },
+      {
+        "id": "REQ-3",
+        "summary": "Update the local packaging workflow scripts (e.g., `frontend/scripts/package-artifact.sh` and related docs) so that running the documented command produces: (1) the deployable build ZIP, (2) `SOURCE_CODE.md`, and (3) the full source-code ZIP, and stages/copies these artifacts into the frontend static public artifacts folder so the app can serve them at `/artifacts/...`.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/scripts/package-artifact.sh",
+          "frontend/scripts/generate-source-document.sh",
+          "frontend/artifacts/DEPLOY_README.md",
+          "frontend/scripts/README.md"
+        ],
+        "matchedFiles": [
+          "frontend/scripts/package-artifact.sh",
+          "frontend/scripts/generate-source-document.sh",
+          "frontend/artifacts/DEPLOY_README.md",
+          "frontend/scripts/README.md"
         ]
       }
     ]
@@ -48,16 +64,11 @@
     "feature_evidence.json",
     "frontend-file-summaries.txt",
     "frontend-implementation-plan.json",
-    "frontend/artifacts/.gitkeep",
     "frontend/artifacts/DEPLOY_README.md",
     "frontend/scripts/README.md",
+    "frontend/scripts/generate-source-document.sh",
     "frontend/scripts/package-artifact.sh",
-    "frontend/src/backend.d.ts",
-    "frontend/src/backend.ts",
-    "frontend/src/declarations/backend.did.d.ts",
-    "frontend/src/declarations/backend.did.js",
-    "frontend/src/hooks/useQueries.ts",
-    "frontend/src/lib/i18n.ts",
+    "frontend/src/hooks/useStaticArtifactAvailability.ts",
     "frontend/src/pages/DashboardPage.tsx",
     "project_state.json",
     "scratch/component-selection.json",

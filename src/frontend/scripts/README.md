@@ -1,32 +1,27 @@
-# Build Artifact Packaging
+# Build Artifact Packaging Workflow
 
-This directory contains scripts for packaging the application into a deployable ZIP artifact.
+This directory contains scripts for packaging the application into distributable artifacts.
 
 ## Overview
 
-The packaging workflow builds both backend and frontend components, then assembles them into a single ZIP file containing:
-- Backend build outputs (WASM + Candid interface files)
-- Frontend production build (static assets)
-- Deployment README with setup instructions
+The packaging workflow generates three types of artifacts:
+
+1. **app-build.zip** - Deployable build package containing compiled backend and frontend
+2. **source-code.zip** - Full editable source tree for development and rebuilding
+3. **SOURCE_CODE.md** - Single Markdown file with complete source code for offline reading
+
+All artifacts are staged into `frontend/public/artifacts/` so they are served at runtime via `/artifacts/` paths.
 
 ## Prerequisites
 
-Before running the packaging script, ensure you have:
-
-1. **dfx** - Internet Computer SDK
-   - Install: `sh -ci "$(curl -fsSL https://internetcomputer.org/install.sh)"`
-   - Verify: `dfx --version`
-
-2. **pnpm** - Package manager
-   - Install: `npm install -g pnpm`
-   - Verify: `pnpm --version`
-
-3. **zip** - Archive utility (usually pre-installed on Unix systems)
-   - Verify: `zip --version`
+- **dfx**: Internet Computer SDK for building backend canisters
+- **pnpm**: Package manager for frontend dependencies
+- **zip**: Command-line utility for creating ZIP archives
+- **bash**: Shell for running the packaging scripts
 
 ## Usage
 
-### Single Command to Generate ZIP
+### Generate All Artifacts
 
-From the **frontend** directory, run:
+From the `frontend` directory, run:
 

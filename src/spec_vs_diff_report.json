@@ -1,62 +1,67 @@
 {
   "kind": "spec_vs_diff_report",
   "version": "1.0",
-  "generatedAt": "2026-02-15T18:54:24.608Z",
-  "summary": "The diff adds a packaging script that builds backend+frontend and zips outputs into a single file, with console output showing the ZIP location. However, the developer/operator documentation appears truncated/incomplete for the “single documented command” and potentially for full local dfx deployment steps. Several unrelated ERP/UI/backend changes also appear that are not part of the ZIP artifact request.",
+  "generatedAt": "2026-02-16T01:10:47.176Z",
+  "summary": "The diff updates the frontend to check availability of three static artifacts (build ZIP, SOURCE_CODE.md, and a new source-code.zip) and adds packaging scripts intended to generate these artifacts. However, evidence is insufficient (and in places contradictory) that the artifacts are actually staged into the frontend static public folder so they are served at runtime from `/artifacts/...` in production builds. Additionally, substantial backend feature changes appear unrelated to the BuildRequest.",
   "missing_requirements": [
     {
       "id": "REQ-1",
-      "requirement": "The ZIP includes a short README (English) with steps to deploy locally using dfx, including any environment/setup prerequisites.",
-      "reason": "A DEPLOY_README.md is added, but the provided diff content is truncated mid-document and does not clearly show the required complete local dfx deployment steps (beyond an intro, prerequisites, and the start of an extraction step).",
+      "requirement": "Ensure the files requested by the Dashboard exist as static assets at `/artifacts/app-build.zip` and `/artifacts/SOURCE_CODE.md` in production builds (served as real files, not HTML).",
+      "reason": "Frontend now checks `/artifacts/...` paths, but the packaging script evidence shows outputs written to `frontend/artifacts/` and a root-level `SOURCE_CODE.md`, with no clear (non-truncated) step that copies them into the runtime-served static folder (commonly `frontend/public/artifacts/`) so they will be reachable at `/artifacts/...` in production.",
       "evidence": [
-        "frontend/artifacts/DEPLOY_README.md"
+        "frontend/src/hooks/useStaticArtifactAvailability.ts",
+        "frontend/src/pages/DashboardPage.tsx",
+        "frontend/scripts/package-artifact.sh (creates/moves `frontend/artifacts/app-build.zip`; generates `SOURCE_CODE.md` at repo root)",
+        "frontend/scripts/README.md (claims staging into `frontend/public/artifacts/`, but not evidenced in script excerpt)"
       ]
     },
     {
       "id": "REQ-2",
-      "requirement": "There is a single documented command (in English) to generate the ZIP from a clean checkout, suitable for re-trying if a prior attempt failed.",
-      "reason": "A scripts README is added and includes a 'Single Command to Generate ZIP' section, but in the diff it ends right after 'From the frontend directory, run:' without showing the actual command.",
+      "requirement": "Produce a downloadable source export ZIP containing the actual project source tree (backend sources and frontend sources/config needed to rebuild) and expose it as a static file under `/artifacts/` for download from the Dashboard.",
+      "reason": "The UI checks/downloads `/artifacts/source-code.zip`, and the packaging script starts creating a source ZIP, but the script content is truncated before confirming it (a) includes required rebuild config files and (b) is staged into the static public artifacts folder so it is actually served at `/artifacts/source-code.zip` in production.",
       "evidence": [
-        "frontend/scripts/README.md"
+        "frontend/src/hooks/useStaticArtifactAvailability.ts (checks `/artifacts/source-code.zip`)",
+        "frontend/src/pages/DashboardPage.tsx (downloads `/artifacts/source-code.zip`)",
+        "frontend/scripts/package-artifact.sh (\"Creating full source code package...\"; truncated before showing final zip output path/copy and full inclusion list)"
+      ]
+    },
+    {
+      "id": "REQ-3",
+      "requirement": "Update packaging workflow scripts/docs so running the documented command produces (1) deployable build ZIP, (2) `SOURCE_CODE.md`, (3) full source-code ZIP, and stages/copies them into the frontend static public artifacts folder served at `/artifacts/...`.",
+      "reason": "Docs state artifacts are staged into `frontend/public/artifacts/`, but the visible portion of `package-artifact.sh` writes the build ZIP to `frontend/artifacts/app-build.zip` and shows no clear step copying artifacts into `frontend/public/artifacts/`. The remainder of the script is truncated, so staging cannot be verified.",
+      "evidence": [
+        "frontend/scripts/README.md (states staging into `frontend/public/artifacts/`)",
+        "frontend/scripts/package-artifact.sh (moves build zip to `frontend/artifacts/app-build.zip`; no shown copy to `frontend/public/artifacts/` before truncation)"
+      ]
+    },
+    {
+      "id": "REQ-3",
+      "requirement": "Ensure `frontend/artifacts/DEPLOY_README.md` and `frontend/scripts/README.md` clearly state what each download contains (build ZIP vs source-code ZIP vs SOURCE_CODE.md) and where they appear inside the extracted ZIP(s).",
+      "reason": "`frontend/scripts/README.md` describes the three artifacts, but `frontend/artifacts/DEPLOY_README.md` is truncated and does not show the required detailed descriptions/paths inside extracted ZIP(s), so compliance cannot be confirmed from the diff summary.",
+      "evidence": [
+        "frontend/scripts/README.md",
+        "frontend/artifacts/DEPLOY_README.md (truncated)"
       ]
     }
   ],
   "hallucinated_features": [
     {
-      "description": "Added/modified significant ERP domain functionality and data types in the Motoko backend (inventory/sales/customers/suppliers/closures/etc.) not related to ZIP artifact generation.",
-      "reason": "BuildRequest explicitly states not to add new product features beyond enabling ZIP artifact generation, but backend/main.mo shows extensive ERP-related types/stores and logic changes unrelated to packaging.",
+      "description": "Large, unrelated backend refactor/additions (inventory/sales/customers/suppliers/closures, blob storage mixin, authorization/access control) not tied to artifact download or source export.",
+      "reason": "BuildRequest focuses on static artifact availability, source ZIP export, and packaging scripts; no backend feature expansion is requested.",
       "evidence": [
         "backend/main.mo"
       ]
-    },
-    {
-      "description": "Large frontend feature expansion/refactors unrelated to ZIP packaging (many React Query hooks for ERP operations, analytics hooks, and translation system changes).",
-      "reason": "The request is focused on adding a build/package workflow and a lightweight artifact entry-point; the diff shows broad updates not necessary for artifact generation.",
-      "evidence": [
-        "frontend/src/hooks/useQueries.ts",
-        "frontend/src/lib/i18n.ts",
-        "frontend-file-summaries.txt"
-      ]
-    },
-    {
-      "description": "Dashboard page expanded with analytics/UI changes beyond a minimal 'Download ZIP' entry-point (multiple analytics states/queries and KPI-related additions).",
-      "reason": "REQ-2 asks for a lightweight entry-point; the diff indicates broader dashboard functionality additions beyond simply exposing artifact download/location instructions.",
-      "evidence": [
-        "frontend/src/pages/DashboardPage.tsx",
-        "frontend-file-summaries.txt"
-      ]
     }
   ],
-  "confidence": 0.66,
+  "confidence": 0.64,
   "changed_files": [
     "backend/main.mo",
     "frontend-file-summaries.txt",
-    "frontend/artifacts/.gitkeep",
     "frontend/artifacts/DEPLOY_README.md",
     "frontend/scripts/README.md",
+    "frontend/scripts/generate-source-document.sh",
     "frontend/scripts/package-artifact.sh",
-    "frontend/src/hooks/useQueries.ts",
-    "frontend/src/lib/i18n.ts",
+    "frontend/src/hooks/useStaticArtifactAvailability.ts",
     "frontend/src/pages/DashboardPage.tsx",
     "project_state.json"
   ]

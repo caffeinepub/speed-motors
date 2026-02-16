@@ -13,16 +13,14 @@ import MixinStorage "blob-storage/Mixin";
 import Storage "blob-storage/Storage";
 import MixinAuthorization "authorization/MixinAuthorization";
 import AccessControl "authorization/access-control";
-// Actor
+
 actor {
   let accessControlState = AccessControl.initState();
   include MixinAuthorization(accessControlState);
   include MixinStorage();
 
-  // Blob type alias for external file references
   type Blob = Storage.ExternalBlob;
 
-  // Data Types
   type InventoryItem = {
     id : Text;
     photo : ?Blob;
@@ -135,7 +133,6 @@ actor {
     createdBy : Text;
   };
 
-  // Data Stores
   let inventoryItems = Map.empty<Text, InventoryItem>();
   let sales = Map.empty<Text, Sale>();
   let exchangeRates = List.empty<ExchangeRate>();
@@ -157,79 +154,27 @@ actor {
     };
   };
 
-  // Self-service bootstrap: Automatically grant #user role to authenticated principals
-  func ensureUserRole(caller : Principal) {
-    // Anonymous calls don't require #user role
-    if (caller.isAnonymous()) { return };
-
-    // Check if user already has a role assigned
-    let currentRole = AccessControl.getUserRole(accessControlState, caller);
-
-    // If user is still a guest, auto-assign user role
-    switch (currentRole) {
-      case (#guest) {
-        // Assign user role without requiring admin privileges
-        AccessControl.assignRole(accessControlState, caller, caller, #user);
-
-        // Create default profile if none exists
-        switch (userProfiles.get(caller)) {
-          case (null) {
-            let defaultProfile = {
-              name = caller.toText();
-              role = "user";
-            };
-            userProfiles.add(caller, defaultProfile);
-          };
-          case (?_) { /* Profile already exists */ };
-        };
-      };
-      case (_) { /* User already has a role */ };
-    };
-  };
-
-  // User registration (not just profile management)
-  public shared ({ caller }) func registerUserRole(permissionLevel : Text, userName : Text) : async Text {
-    let entries = [("user", "user")];
-    let roleMapping = Map.fromArray(entries);
-
-    if (caller.isAnonymous()) { Runtime.trap("Unauthorized: Anonymous request not allowed") };
-
-    switch (roleMapping.get(permissionLevel)) {
-      case (null) { Runtime.trap("Unknown permission level " # permissionLevel) };
-      case (?desiredRole) {
-        if (AccessControl.hasPermission(accessControlState, caller, #admin)) {
-          let updatedProfile = { name = userName; role = permissionLevel };
-          userProfiles.add(caller, updatedProfile);
-          AccessControl.assignRole(accessControlState, caller, caller, #user);
-        } else if (permissionLevel != "user" or AccessControl.isAdmin(accessControlState, caller)) {
-          Runtime.trap("Insufficient privileges for " # permissionLevel);
-        } else {
-          let newProfile = { name = userName; role = permissionLevel };
-          userProfiles.add(caller, newProfile);
-          AccessControl.assignRole(accessControlState, caller, caller, #user);
-        };
-      };
-    };
-    "Registration successful";
-  };
-
   public query ({ caller }) func getCallerUserProfile() : async ?UserProfile {
-    switch (userProfiles.get(caller)) {
-      case (?userProfile) { ?userProfile };
-      case (null) { null };
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can view profiles");
     };
+    userProfiles.get(caller);
+  };
+
+  public query ({ caller }) func getUserProfile(user : Principal) : async ?UserProfile {
+    if (caller != user and not AccessControl.isAdmin(accessControlState, caller)) {
+      Runtime.trap("Unauthorized: Can only view your own profile");
+    };
+    userProfiles.get(user);
   };
 
   public shared ({ caller }) func saveCallerUserProfile(profile : UserProfile) : async () {
-    ensureUserRole(caller);
-
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can save profiles");
     };
     userProfiles.add(caller, profile);
   };
 
-  // Validation function for creating inventory items
   func validateInventoryItemCreatePayload(payload : InventoryItemCreatePayload) {
     if (payload.id == "") { Runtime.trap("ID is required") };
     if (payload.description == "") { Runtime.trap("Description is required") };
@@ -251,12 +196,9 @@ actor {
     };
   };
 
-  // Inventory Management - Now allows "user" role to create/update
   public shared ({ caller }) func createInventoryItem(payload : InventoryItemCreatePayload) : async InventoryItem {
-    ensureUserRole(caller);
-
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only authenticated users can create inventory items");
+      Runtime.trap("Unauthorized: Only users can create inventory items");
     };
 
     validateInventoryItemCreatePayload(payload);
@@ -287,8 +229,6 @@ actor {
     id : Text,
     payload : UpdateInventoryItemPayload,
   ) : async InventoryItem {
-    ensureUserRole(caller);
-
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can update inventory items");
     };
@@ -365,10 +305,7 @@ actor {
     inventoryItems.values().toArray();
   };
 
-  // Exchange Rate Management
   public shared ({ caller }) func addExchangeRate(bcvVesPerUsd : Float, copPerUsd : Float) : async () {
-    ensureUserRole(caller);
-
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can add exchange rates");
     };
@@ -406,16 +343,13 @@ actor {
     };
   };
 
-  // Customer Management - NO LONGER ADMIN ONLY
   public shared ({ caller }) func createCustomer(
     id : Text,
     name : Text,
     contactInfo : Text,
   ) : async Customer {
-    ensureUserRole(caller);
-
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only authenticated users can create customers");
+      Runtime.trap("Unauthorized: Only users can create customers");
     };
 
     if (customers.containsKey(id)) { Runtime.trap("Customer already exists for " # id) };
@@ -448,7 +382,6 @@ actor {
     customers.values().toArray();
   };
 
-  // Search and Utility Functions - User level access
   public query ({ caller }) func searchProducts(searchQuery : Text) : async [InventoryItem] {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can search products");
@@ -468,8 +401,6 @@ actor {
   };
 
   public shared ({ caller }) func convertPriceToVes(usd : Float) : async Float {
-    ensureUserRole(caller);
-
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can convert prices");
     };
@@ -479,8 +410,6 @@ actor {
   };
 
   public shared ({ caller }) func convertPriceToCop(usd : Float) : async Float {
-    ensureUserRole(caller);
-
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can convert prices");
     };
@@ -490,8 +419,6 @@ actor {
   };
 
   public shared ({ caller }) func addProfitMarginToCost(costUsd : Float, profitMarginPercent : Float) : async Float {
-    ensureUserRole(caller);
-
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can calculate profit margins");
     };
@@ -500,7 +427,6 @@ actor {
     costUsd + marginAmount;
   };
 
-  // Delinquency Tracking - User level access for viewing
   public query ({ caller }) func listDelinquentSales() : async [Sale] {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can view delinquent sales");
@@ -561,7 +487,6 @@ actor {
     );
   };
 
-  // Cashbox Entry Type
   public type CashboxEntry = {
     id : Text;
     entryType : { #_in; #out };
@@ -573,7 +498,6 @@ actor {
 
   let cashboxEntries = Map.empty<Text, CashboxEntry>();
 
-  // Add Cashbox Entry (Admin only)
   public shared ({ caller }) func addCashboxEntry(
     id : Text,
     entryType : { #_in; #out },
@@ -582,7 +506,7 @@ actor {
     description : Text,
   ) : async () {
     if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
-      Runtime.trap("Unauthorized: Only admins can add cashbox entries");
+      Runtime.trap("Unauthorized: Only admins can manually add cashbox entries");
     };
 
     if (cashboxEntries.containsKey(id)) { Runtime.trap("Cashbox entry already exists for " # id) };
@@ -634,7 +558,6 @@ actor {
     };
   };
 
-  // Post Sale - Now allows "user" role
   public shared ({ caller }) func postSale(
     id : Text,
     customerName : Text,
@@ -642,8 +565,6 @@ actor {
     totalAmountUsd : Float,
     isCreditSale : Bool,
   ) : async () {
-    ensureUserRole(caller);
-
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can post sales");
     };
@@ -691,7 +612,6 @@ actor {
 
       cashboxEntries.add(cashboxEntry.id, cashboxEntry);
     } else {
-      // For credit sales, update customer debt
       let customerOpt = customers.values().toArray().find(func(c : Customer) : Bool { c.name == customerName });
       switch (customerOpt) {
         case (?customer) {
@@ -708,7 +628,6 @@ actor {
     };
   };
 
-  // Internal function to update customer debt - admin only
   func updateCustomerDebtInternal(id : Text, amount : Float) {
     switch (customers.get(id)) {
       case (?existingCustomer) {
@@ -722,7 +641,6 @@ actor {
     };
   };
 
-  // Public function for admin to manually adjust customer debt
   public shared ({ caller }) func adjustCustomerDebt(id : Text, amount : Float) : async () {
     if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
       Runtime.trap("Unauthorized: Only admins can adjust customer debt");
@@ -730,7 +648,6 @@ actor {
     updateCustomerDebtInternal(id, amount);
   };
 
-  // Returns list of distinct categories from inventory
   public query ({ caller }) func getDistinctCategories() : async [Text] {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can get categories");
@@ -749,7 +666,6 @@ actor {
     inventoryItems.values().toArray().filter(func(item) { item.category == category });
   };
 
-  // Returns current timestamp in nanoseconds
   public query ({ caller }) func getCurrentTimestamp() : async Int {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can get timestamp");
@@ -758,22 +674,18 @@ actor {
     Time.now();
   };
 
-  // Record search event
   public type RecordSearchEventPayload = {
     searchTerm : Text;
     timestamp : Time.Time;
   };
 
   public shared ({ caller }) func recordSearchEvent(_payload : RecordSearchEventPayload) : async () {
-    ensureUserRole(caller);
-
     if (not AccessControl.hasPermission(accessControlState, caller, #user)) {
       Runtime.trap("Unauthorized: Only users can record search events");
     };
     ();
   };
 
-  // Stubbed reporting functions
   public type TopSearchedProduct = {
     searchTerm : Text;
     searchCount : Nat;
@@ -812,13 +724,9 @@ actor {
     [];
   };
 
-  // SUPPLIER MANAGEMENT
-
   public shared ({ caller }) func createSupplier(payload : CreateSupplierPayload) : async Supplier {
-    ensureUserRole(caller);
-
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only authenticated users can manage suppliers");
+      Runtime.trap("Unauthorized: Only users can manage suppliers");
     };
 
     if (suppliers.containsKey(payload.id)) {
@@ -839,19 +747,15 @@ actor {
 
   public query ({ caller }) func listSuppliers() : async [Supplier] {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only authenticated users can list suppliers");
+      Runtime.trap("Unauthorized: Only users can list suppliers");
     };
 
     suppliers.values().toArray();
   };
 
-  // CLOSURE (CIERRE) MANAGEMENT
-
   public shared ({ caller }) func createClosure(payload : CreateClosurePayload) : async Closure {
-    ensureUserRole(caller);
-
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only authenticated users can create closures");
+      Runtime.trap("Unauthorized: Only users can create closures");
     };
 
     if (closures.containsKey(payload.id)) {
@@ -875,18 +779,16 @@ actor {
 
   public query ({ caller }) func listClosures() : async [Closure] {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only authenticated users can list closures");
+      Runtime.trap("Unauthorized: Only users can list closures");
     };
 
     closures.values().toArray();
   };
 
-  // BUILD ARTIFACTS (Admin-only development feature)
   public shared ({ caller }) func getBuildArtifacts() : async Text {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
-      Runtime.trap("Unauthorized: Only admins can access build artifacts");
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can access build artifacts");
     };
-    Runtime.trap("Cannot run build artifacts on installed version. Please use an Internet Computer development environment (e.g. https://github.com/dfinity/ic-dev-cli) for this feature.");
+    "/artifacts/somosora_project.zip";
   };
 };
-

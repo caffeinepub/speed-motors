@@ -2,13 +2,11 @@
   "kind": "feature_evidence_report",
   "features": [
     {
-      "featureId": "feature-add-a-repeatable-build-and-package-workflow-that-produces-a-single-downloadable-zip-artifact-of-the-current-application-including-both-backend-and-frontend-build-outputs-and-minimal-deployment-instructions",
-      "featureTitle": "Add a repeatable build-and-package workflow that produces a single downloadable ZIP artifact of the current application, including both backend and frontend build outputs and minimal deployment instructions.",
+      "featureId": "feature-make-the-in-app-download-links-for-build-artifacts-work-by-ensuring-the-files-requested-by-the-dashboard-exist-as-static-assets-at-artifacts-app-build-zip-and-artifacts-source-code-md-in-production-builds",
+      "featureTitle": "Make the in-app download links for build artifacts work by ensuring the files requested by the Dashboard exist as static assets at `/artifacts/app-build.zip` and `/artifacts/SOURCE_CODE.md` in production builds.",
       "files": [
-        "frontend/artifacts/.gitkeep",
-        "frontend/artifacts/DEPLOY_README.md",
-        "frontend/scripts/README.md",
-        "frontend/scripts/package-artifact.sh"
+        "frontend/src/hooks/useStaticArtifactAvailability.ts",
+        "frontend/src/pages/DashboardPage.tsx"
       ],
       "components": [
         "blob-storage@4.0.0",
@@ -25,10 +23,11 @@
       "confidence": "high"
     },
     {
-      "featureId": "feature-add-a-lightweight-download-zip-build-artifact-entry-point-for-developers-operators-english-text-that-makes-it-easy-to-locate-and-retrieve-the-generated-zip-file-after-a-successful-build",
-      "featureTitle": "Add a lightweight \"Download ZIP\" build artifact entry-point for developers/operators (English text) that makes it easy to locate and retrieve the generated ZIP file after a successful build.",
+      "featureId": "feature-add-a-downloadable-zip-export-that-contains-the-actual-project-source-tree-at-minimum-backend-sources-and-frontend-sources-config-needed-to-rebuild-and-expose-it-as-a-static-file-under-artifacts-so-users-can-download-the-full-website-source-code-directly-from-the-app",
+      "featureTitle": "Add a downloadable ZIP export that contains the actual project source tree (at minimum: `backend/` sources and `frontend/` sources/config needed to rebuild), and expose it as a static file under `/artifacts/` so users can download the full website source code directly from the app.",
       "files": [
-        "frontend/src/hooks/useQueries.ts",
+        "frontend/scripts/package-artifact.sh",
+        "frontend/src/hooks/useStaticArtifactAvailability.ts",
         "frontend/src/pages/DashboardPage.tsx"
       ],
       "components": [
@@ -42,6 +41,29 @@
       ],
       "testIds": [
         "REQ-2"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-update-the-local-packaging-workflow-scripts-e-g-frontend-scripts-package-artifact-sh-and-related-docs-so-that-running-the-documented-command-produces-1-the-deployable-build-zip-2-source-code-md-and-3-the-full-source-code-zip-and-stages-copies-these-artifacts-into-the-frontend-static-public-artifacts-folder-so-the-app-can-serve-them-at-artifacts",
+      "featureTitle": "Update the local packaging workflow scripts (e.g., `frontend/scripts/package-artifact.sh` and related docs) so that running the documented command produces: (1) the deployable build ZIP, (2) `SOURCE_CODE.md`, and (3) the full source-code ZIP, and stages/copies these artifacts into the frontend static public artifacts folder so the app can serve them at `/artifacts/...`.",
+      "files": [
+        "frontend/artifacts/DEPLOY_README.md",
+        "frontend/scripts/README.md",
+        "frontend/scripts/generate-source-document.sh",
+        "frontend/scripts/package-artifact.sh"
+      ],
+      "components": [
+        "blob-storage@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0",
+        "authorization@4.0.0"
+      ],
+      "testIds": [
+        "REQ-3"
       ],
       "confidence": "high"
     }

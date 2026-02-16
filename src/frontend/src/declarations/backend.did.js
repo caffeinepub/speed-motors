@@ -250,6 +250,11 @@ export const idlService = IDL.Service({
       [IDL.Vec(TopSearchedProduct)],
       ['query'],
     ),
+  'getUserProfile' : IDL.Func(
+      [IDL.Principal],
+      [IDL.Opt(UserProfile)],
+      ['query'],
+    ),
   'hasDelinquentSales' : IDL.Func([IDL.Vec(Sale)], [IDL.Bool], ['query']),
   'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
   'listCashboxEntries' : IDL.Func([], [IDL.Vec(CashboxEntry)], ['query']),
@@ -265,7 +270,6 @@ export const idlService = IDL.Service({
       [],
     ),
   'recordSearchEvent' : IDL.Func([RecordSearchEventPayload], [], []),
-  'registerUserRole' : IDL.Func([IDL.Text, IDL.Text], [IDL.Text], []),
   'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
   'searchProducts' : IDL.Func([IDL.Text], [IDL.Vec(InventoryItem)], ['query']),
   'updateInventoryItem' : IDL.Func(
@@ -520,6 +524,11 @@ export const idlFactory = ({ IDL }) => {
         [IDL.Vec(TopSearchedProduct)],
         ['query'],
       ),
+    'getUserProfile' : IDL.Func(
+        [IDL.Principal],
+        [IDL.Opt(UserProfile)],
+        ['query'],
+      ),
     'hasDelinquentSales' : IDL.Func([IDL.Vec(Sale)], [IDL.Bool], ['query']),
     'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
     'listCashboxEntries' : IDL.Func([], [IDL.Vec(CashboxEntry)], ['query']),
@@ -535,7 +544,6 @@ export const idlFactory = ({ IDL }) => {
         [],
       ),
     'recordSearchEvent' : IDL.Func([RecordSearchEventPayload], [], []),
-    'registerUserRole' : IDL.Func([IDL.Text, IDL.Text], [IDL.Text], []),
     'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
     'searchProducts' : IDL.Func(
         [IDL.Text],

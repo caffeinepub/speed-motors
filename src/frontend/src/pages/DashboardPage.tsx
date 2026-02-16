@@ -1,4 +1,4 @@
-import { TrendingUp, Package, Users, DollarSign, AlertTriangle, BarChart3, Search, TrendingDown, Download, Terminal } from 'lucide-react';
+import { TrendingUp, Package, Users, DollarSign, AlertTriangle, BarChart3, Search, TrendingDown, Download, Terminal, FileText, Code } from 'lucide-react';
 import { 
   useInventory, 
   useCustomers, 
@@ -19,6 +19,7 @@ import { t, plural } from '@/lib/i18n';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useState } from 'react';
 import { useInternetIdentity } from '@/hooks/useInternetIdentity';
+import { useStaticArtifactAvailability } from '@/hooks/useStaticArtifactAvailability';
 
 export default function DashboardPage() {
   const { data: inventory = [], isLoading: inventoryLoading } = useInventory();
@@ -35,6 +36,7 @@ export default function DashboardPage() {
   // Build artifacts state
   const [showBuildInfo, setShowBuildInfo] = useState(false);
   const { data: buildArtifactsInfo, isLoading: buildInfoLoading, error: buildInfoError } = useBuildArtifactsInfo();
+  const { data: artifactAvailability, isLoading: artifactsLoading } = useStaticArtifactAvailability();
 
   // Analytics queries - convert number to bigint
   const { data: topItemsSold = [], isLoading: topItemsLoading } = useTopItemsSold(BigInt(topItemsCount));
@@ -45,7 +47,35 @@ export default function DashboardPage() {
   const totalDebt = customers.reduce((sum, customer) => sum + customer.debtUsd, 0);
   const overdueCustomers = new Set(overdueSales.map(sale => sale.customerName));
 
-  const isAuthenticated = !!identity;
+  // Authentication check: treat anonymous principals as unauthenticated
+  const isAuthenticated = !!identity && !identity.getPrincipal().isAnonymous();
+
+  const handleDownloadZip = () => {
+    const link = document.createElement('a');
+    link.href = '/artifacts/app-build.zip';
+    link.download = 'app-build.zip';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleDownloadSourceDoc = () => {
+    const link = document.createElement('a');
+    link.href = '/artifacts/SOURCE_CODE.md';
+    link.download = 'SOURCE_CODE.md';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleDownloadSourceZip = () => {
+    const link = document.createElement('a');
+    link.href = '/artifacts/source-code.zip';
+    link.download = 'source-code.zip';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   return (
     <div className="space-y-6">
@@ -148,28 +178,103 @@ export default function DashboardPage() {
         </Card>
       </div>
 
-      {/* Build Artifacts Section (Developers/Operators) */}
+      {/* Full Project Export Section - Only visible when authenticated */}
       {isAuthenticated && (
         <Card className="border-dashed">
           <CardHeader>
             <div className="flex items-center gap-2">
-              <Terminal className="h-5 w-5 text-muted-foreground" />
-              <CardTitle>Download ZIP (Developers/Operators)</CardTitle>
+              <Download className="h-5 w-5 text-muted-foreground" />
+              <CardTitle>Full Project Export</CardTitle>
             </div>
             <CardDescription>
-              Generate a deployable build artifact containing backend and frontend outputs
+              Download the complete application package or source code for deployment and offline reference
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="rounded-lg bg-muted p-4 space-y-2">
-              <p className="text-sm font-medium">To generate the ZIP artifact:</p>
-              <div className="bg-background rounded p-3 font-mono text-sm">
-                cd frontend && pnpm run package-artifact
+            {artifactsLoading ? (
+              <div className="space-y-3">
+                <Skeleton className="h-20 w-full" />
+                <Skeleton className="h-20 w-full" />
+                <Skeleton className="h-20 w-full" />
               </div>
-              <p className="text-xs text-muted-foreground">
-                Output location: <code className="bg-background px-1 py-0.5 rounded">frontend/artifacts/app-build.zip</code>
-              </p>
-            </div>
+            ) : artifactAvailability?.zipAvailable || artifactAvailability?.sourceDocAvailable || artifactAvailability?.sourceZipAvailable ? (
+              <div className="space-y-3">
+                {artifactAvailability.zipAvailable && (
+                  <div className="rounded-lg border p-4 space-y-3">
+                    <div className="flex items-start justify-between">
+                      <div className="space-y-1">
+                        <p className="font-medium">Complete Build Package</p>
+                        <p className="text-sm text-muted-foreground">
+                          ZIP archive containing backend WASM, frontend build, deployment instructions, and source code document
+                        </p>
+                      </div>
+                      <Button onClick={handleDownloadZip} size="sm">
+                        <Download className="h-4 w-4 mr-2" />
+                        Download ZIP
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
+                {artifactAvailability.sourceZipAvailable && (
+                  <div className="rounded-lg border p-4 space-y-3">
+                    <div className="flex items-start justify-between">
+                      <div className="space-y-1">
+                        <p className="font-medium">Full Source Code (ZIP)</p>
+                        <p className="text-sm text-muted-foreground">
+                          Complete editable project source tree (backend, frontend, configs) for offline development and rebuilding
+                        </p>
+                      </div>
+                      <Button onClick={handleDownloadSourceZip} size="sm" variant="secondary">
+                        <Code className="h-4 w-4 mr-2" />
+                        Download Source
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
+                {artifactAvailability.sourceDocAvailable && (
+                  <div className="rounded-lg border p-4 space-y-3">
+                    <div className="flex items-start justify-between">
+                      <div className="space-y-1">
+                        <p className="font-medium">Source Code Document</p>
+                        <p className="text-sm text-muted-foreground">
+                          Single Markdown file with complete source code for offline reading
+                        </p>
+                      </div>
+                      <Button onClick={handleDownloadSourceDoc} size="sm" variant="outline">
+                        <FileText className="h-4 w-4 mr-2" />
+                        Download Markdown
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <div className="rounded-lg bg-muted p-4 space-y-2">
+                  <p className="text-sm font-medium">To generate the build artifacts locally:</p>
+                  <div className="bg-background rounded p-3 font-mono text-sm">
+                    cd frontend && pnpm run package-artifact
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Expected outputs in <code className="bg-background px-1 py-0.5 rounded">frontend/public/artifacts/</code>:
+                  </p>
+                  <ul className="text-xs text-muted-foreground list-disc list-inside ml-2 space-y-1">
+                    <li><code className="bg-background px-1 py-0.5 rounded">app-build.zip</code> - Deployable build package</li>
+                    <li><code className="bg-background px-1 py-0.5 rounded">source-code.zip</code> - Full editable source tree</li>
+                    <li><code className="bg-background px-1 py-0.5 rounded">SOURCE_CODE.md</code> - Source code document</li>
+                  </ul>
+                </div>
+
+                <Alert>
+                  <AlertDescription className="text-xs">
+                    <strong>Note:</strong> The packaging script must be run from your local development environment. 
+                    It requires dfx and pnpm to be installed. See <code>frontend/scripts/README.md</code> for complete documentation.
+                  </AlertDescription>
+                </Alert>
+              </div>
+            )}
 
             <div className="flex gap-2">
               <Button
@@ -178,8 +283,8 @@ export default function DashboardPage() {
                 onClick={() => setShowBuildInfo(!showBuildInfo)}
                 disabled={buildInfoLoading}
               >
-                <Download className="h-4 w-4 mr-2" />
-                {buildInfoLoading ? 'Loading...' : showBuildInfo ? 'Hide Info' : 'Show Backend Info'}
+                <Terminal className="h-4 w-4 mr-2" />
+                {buildInfoLoading ? 'Loading...' : showBuildInfo ? 'Hide Backend Info' : 'Show Backend Info'}
               </Button>
             </div>
 
@@ -205,13 +310,6 @@ export default function DashboardPage() {
                 )}
               </div>
             )}
-
-            <Alert>
-              <AlertDescription className="text-xs">
-                <strong>Note:</strong> The packaging script must be run from your local development environment. 
-                It requires dfx and pnpm to be installed. See <code>frontend/scripts/README.md</code> for full documentation.
-              </AlertDescription>
-            </Alert>
           </CardContent>
         </Card>
       )}
@@ -336,9 +434,9 @@ export default function DashboardPage() {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="day">{t('analytics.daily')}</SelectItem>
-              <SelectItem value="week">{t('analytics.weekly')}</SelectItem>
-              <SelectItem value="month">{t('analytics.monthly')}</SelectItem>
+              <SelectItem value="day">Daily</SelectItem>
+              <SelectItem value="week">Weekly</SelectItem>
+              <SelectItem value="month">Monthly</SelectItem>
             </SelectContent>
           </Select>
         </CardHeader>
@@ -365,10 +463,9 @@ export default function DashboardPage() {
                     </p>
                   </div>
                   <div className="text-right">
-                    <p className={`font-bold ${entry.netProfit >= 0 ? 'text-green-600' : 'text-destructive'}`}>
+                    <p className={`font-bold ${entry.netProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                       {formatUSD(entry.netProfit)}
                     </p>
-                    <p className="text-xs text-muted-foreground">{t('analytics.net_profit')}</p>
                   </div>
                 </div>
               ))}
@@ -376,64 +473,6 @@ export default function DashboardPage() {
           )}
         </CardContent>
       </Card>
-
-      {/* Low Stock Items */}
-      {lowStockItems.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5 text-destructive" />
-              {t('dashboard.low_stock_items')}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              {lowStockItems.map((item) => (
-                <div key={item.id} className="flex items-center justify-between p-3 rounded-lg border border-destructive/20 bg-destructive/5">
-                  <div>
-                    <p className="font-medium text-sm">{item.description}</p>
-                    <p className="text-xs text-muted-foreground">{item.category}</p>
-                  </div>
-                  <div className="text-right">
-                    <Badge variant="destructive">
-                      {Number(item.stockCurrent)} / {Number(item.stockMin)}
-                    </Badge>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Overdue Customers */}
-      {overdueCustomers.size > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5 text-destructive" />
-              {t('dashboard.overdue_customers')}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              {Array.from(overdueCustomers).map((customerName) => {
-                const customer = customers.find(c => c.name === customerName);
-                return (
-                  <div key={customerName} className="flex items-center justify-between p-3 rounded-lg border border-destructive/20 bg-destructive/5">
-                    <p className="font-medium text-sm">{customerName}</p>
-                    {customer && (
-                      <Badge variant="destructive">
-                        {formatUSD(customer.debtUsd)}
-                      </Badge>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </CardContent>
-        </Card>
-      )}
     </div>
   );
 }
